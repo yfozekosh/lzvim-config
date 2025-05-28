@@ -13,7 +13,7 @@ return {
   {
     "LazyVim/LazyVim",
     opts = {
-      colorscheme = "gruvbox",
+      -- colorscheme = "gruvbox",
       opts = {
         root = {
           autochdir = false,

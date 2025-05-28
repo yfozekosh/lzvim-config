@@ -3,3 +3,4 @@
 -- Add any additional options here
 --
 vim.g.root_spec = { "cwd" }
+vim.g.autoformat = false
