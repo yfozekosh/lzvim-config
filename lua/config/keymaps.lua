@@ -43,3 +43,5 @@ end, { desc = "Quick fix", noremap = true, silent = true })
 vim.keymap.set("n", "<C-r><C-r>", function()
   vim.lsp.buf.rename()
 end, { desc = "Rename", noremap = true, silent = true })
+
+require("config.ComplexKeymaps.dotnet-build")

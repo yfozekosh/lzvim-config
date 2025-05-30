@@ -7,7 +7,8 @@
 
 return {
   -- add gruvbox
-  { "ellisonleao/gruvbox.nvim" },
+  -- { "ellisonleao/gruvbox.nvim" },
+  { "echasnovski/mini.animate", enabled = false },
 
   -- Configure LazyVim to load gruvbox
   {
