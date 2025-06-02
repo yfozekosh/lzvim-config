@@ -16,20 +16,16 @@ RUN dnf install -y \
   cmake \
   wget \
   openssl \
-  dotnet-sdk-8.0 \
+  dotnet-sdk-9.0 \
+  neovim \
   && dnf clean all
 
-# Download and install the latest Neovim (Linux x64 AppImage)
-RUN curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim.appimage \
-  && chmod u+x nvim.appimage \
-  && ./nvim.appimage --appimage-extract \
-  && mv squashfs-root /opt/nvim \
-  && ln -s /opt/nvim/AppRun /usr/local/bin/nvim
+RUN dnf install -y nodejs
 
 # Set up user
-RUN useradd -ms /bin/bash devuser
-USER devuser
-WORKDIR /home/devuser
+RUN useradd -ms /bin/bash yfozekosh 
+USER yfozekosh 
+WORKDIR /home/yfozekosh
 
 # Install your Neovim config
 RUN git clone https://github.com/yfozekosh/lzvim-config ~/.config/nvim
@@ -37,19 +33,36 @@ RUN git clone https://github.com/yfozekosh/lzvim-config ~/.config/nvim
 # Install tmux plugin manager
 RUN git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 
-# tmux.conf setup
-RUN echo "\
-  set -g @plugin 'tmux-plugins/tpm'\n\
-  set -g @plugin 'tmux-plugins/tmux-sensible'\n\
-  set -g @plugin 'alexwforsythe/tmux-which-key'\n\
-  run '~/.tmux/plugins/tpm/tpm'\n\
-  unbind C-b\n\
-  set-option -g prefix C-Space\n\
-  bind C-Space send-prefix\n\
-  set -g base-index 1\n" > ~/.tmux.conf
+# Add tmux configuration using a heredoc
+# Add tmux configuration (line-by-line echo, safe for Docker)
+RUN echo "set -g @plugin 'tmux-plugins/tpm'" >> /home/yfozekosh/.tmux.conf && \
+  echo "set -g @plugin 'tmux-plugins/tmux-sensible'" >> /home/yfozekosh/.tmux.conf && \
+  echo "set -g @plugin 'alexwforsythe/tmux-which-key'" >> /home/yfozekosh/.tmux.conf && \
+  echo "" >> /home/yfozekosh/.tmux.conf && \
+#  echo "unbind C-b" >> /home/yfozekosh/.tmux.conf && \
+#  echo "set -g prefix C-Space" >> /home/yfozekosh/.tmux.conf && \
+#  echo "bind C-Space send-prefix" >> /home/yfozekosh/.tmux.conf && \
+  echo "set -g base-index 1" >> /home/yfozekosh/.tmux.conf && \
+  echo "" >> /home/yfozekosh/.tmux.conf && \
+  echo "set -g default-terminal \"tmux-256color\"" >> /home/yfozekosh/.tmux.conf && \
+  echo "set -ga terminal-overrides \",xterm-256color:Tc\"" >> /home/yfozekosh/.tmux.conf && \
+  echo "" >> /home/yfozekosh/.tmux.conf && \
+  echo "run '~/.tmux/plugins/tpm/tpm'" >> /home/yfozekosh/.tmux.conf
 
-# Install Samsung's vsdbg (debugger)
-RUN mkdir -p ~/vsdbg && curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l ~/vsdbg
+# Install Samsung netcoredbg (specific release)
+RUN curl -LO https://github.com/Samsung/netcoredbg/releases/download/3.1.2-1054/netcoredbg-linux-amd64.tar.gz \
+  && tar -xzf netcoredbg-linux-amd64.tar.gz \
+  && mv netcoredbg ~/dotnetcoredbg \
+  && rm netcoredbg-linux-amd64.tar.gz
+
+# Add netcoredbg to PATH
+ENV PATH="/home/yfozekosh/netcoredbg:$PATH"
+
+RUN echo "export TERM=xterm-256color" >> /home/yfozekosh/.bashrc && \
+    echo "export COLORTERM=truecolor" >> /home/yfozekosh/.bashrc
+
+# Neovim config
+RUN nvim --headless "+Lazy! install" +qa
 
 # On container start, open tmux
-CMD ["tmux"]
+CMD ["/bin/bash"]
