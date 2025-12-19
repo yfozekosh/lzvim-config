@@ -10,6 +10,6 @@ return {
       modifiable = true,
     },
     write_all_buffers = false,
-    debounce_delay = 500,
+    debounce_delay = 5000,
   },
 }

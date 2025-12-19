@@ -1,5 +1,5 @@
--- every spec file under the "plugins" directory will be loaded automatically by lazy.nvim
 --
+-- every spec file under the "plugins" directory will be loaded automatically by lazy.nvim
 -- In your plugin files, you can:
 -- * add extra plugins
 -- * disable/enabled LazyVim plugins
@@ -8,7 +8,8 @@
 return {
   -- add gruvbox
   -- { "ellisonleao/gruvbox.nvim" },
-  { "echasnovski/mini.animate", enabled = false },
+  { "nvim-treesitter", enabled = false },
+  { "nvim-mini/mini.animate", enabled = false },
 
   -- Configure LazyVim to load gruvbox
   {
