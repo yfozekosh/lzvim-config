@@ -8,7 +8,6 @@
 return {
   -- add gruvbox
   -- { "ellisonleao/gruvbox.nvim" },
-  { "nvim-treesitter", enabled = false },
   { "nvim-mini/mini.animate", enabled = false },
 
   -- Configure LazyVim to load gruvbox
