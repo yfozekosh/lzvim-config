@@ -20,11 +20,6 @@ end, { desc = "Stop persistence (disable autosave)" })
 
 require("config.ComplexKeymaps.comment-on-f2")
 
-vim.keymap.set("n", "<leader>kl", function()
-  vim.lsp.buf.format({ async = true })
-  vim.notify("Formatted", vim.log.levels.INFO)
-end, { desc = "Format code" })
-
 require("config.ComplexKeymaps.close-others")
 
 -- Normal mode: select all
@@ -45,3 +40,5 @@ vim.keymap.set("n", "<C-r><C-r>", function()
 end, { desc = "Rename", noremap = true, silent = true })
 
 require("config.ComplexKeymaps.dotnet-build")
+require("config.ComplexKeymaps.dotnet-format")
+

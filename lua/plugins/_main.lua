@@ -9,12 +9,13 @@ return {
   -- add gruvbox
   -- { "ellisonleao/gruvbox.nvim" },
   { "nvim-mini/mini.animate", enabled = false },
+  { "Mofiqul/vscode.nvim", enabled=true},
 
   -- Configure LazyVim to load gruvbox
   {
     "LazyVim/LazyVim",
     opts = {
-      -- colorscheme = "gruvbox",
+      colorscheme = "vscode",
       opts = {
         root = {
           autochdir = false,
