@@ -9,7 +9,8 @@ return {
   -- add gruvbox
   -- { "ellisonleao/gruvbox.nvim" },
   { "nvim-mini/mini.animate", enabled = false },
-  { "Mofiqul/vscode.nvim", enabled=true},
+  { "Mofiqul/vscode.nvim", enabled = true },
+  { "johngrib/vim-game-snake" },
 
   -- Configure LazyVim to load gruvbox
   {
