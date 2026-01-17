@@ -42,7 +42,6 @@ local function get_fastfetch(isLogo)
     end
   end
 
-  vim.notify(i)
   result = table.concat(cropped_lines, "\n")
 
   return result
