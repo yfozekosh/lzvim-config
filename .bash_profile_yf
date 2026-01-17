@@ -1,0 +1,270 @@
+#!/bin/bash
+
+# .bashrc
+#
+# ---- paths ----
+export PROJECT_PATH=~/dispute/     # on Git Bash / MSYS
+# export PROJECT_PATH="$HOME/__Projects/dispute" # example for Linux/macOS
+export COMPOSE_FOLDER_PATH="$PROJECT_PATH/src/docker-compose"
+
+# ---- utils ----
+cc() { clear; }
+rp() { source ~/.bashrc 2>/dev/null || true; source ~/.zshrc 2>/dev/null || true; }
+cdp() { cd $PROJECT_PATH || return; }
+
+# ---- git log helpers ----
+gg() {
+  local n=7
+  # If first arg is an int, treat it as n
+  if [[ "${1-}" =~ ^-?[0-9]+$ ]]; then
+    n="$1"; shift
+  fi
+
+  if (( n > 0 )); then
+    git log --oneline --graph --decorate --all -n "$n" "$@"
+  else
+    git log --oneline --graph --decorate --all "$@"
+  fi
+}
+gga() { gg 0 "$@"; }
+cgg() { cc; gg; }
+
+# ---- project scripts ----
+format() (
+  cd "$PROJECT_PATH" || exit 1
+  pwsh ./scripts/FormatSolution.ps1
+)
+
+buildTests() (
+  local forceFlag=""
+  [[ "${1-}" == "--force" || "${1-}" == "-f" ]] && forceFlag="-f"
+
+  cd "$PROJECT_PATH" || exit 1
+  export IsIntegrationTest="true"
+  export ASPNETCORE_ENVIRONMENT="notDev"
+
+  # keep nugetPAT passed through
+  nugetPAT="${nugetPAT}" /bin/bash ./src/docker-compose/tests/ensure-premigrated-image.sh $forceFlag
+)
+
+ensureTests() (
+  cd "$PROJECT_PATH" || exit 1
+  nugetPAT="${nugetPAT}" /bin/bash ./src/docker-compose/tests/ensure-premigrated-image.sh
+)
+
+bashTests() {
+  docker run \
+    -e MSBUILDTERMINALLOGGER=false \
+    -e IsIntegrationTest=true \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    --tty -it \
+    -v tests:/tests \
+    dispute/built-solution \
+    /bin/bash
+}
+
+extDeps() (
+  cd "$COMPOSE_FOLDER_PATH" || exit 1
+  docker compose -f ./docker-compose.external-deps.yml up -d
+)
+
+# ---- string / list helpers ----
+tr() {
+  # trims each line; works with pipes and arrays via xargs-ish usage
+  # usage: echo "  hi  " | tr
+  #        printf " a \n b \n" | tr
+  sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+}
+
+no_remotes() {
+  # remove leading "remotes/origin/" from each input line
+  # usage: git branch -a | no_remotes
+  sed 's#^remotes/origin/##'
+}
+
+ix() {
+  # 0-based index; supports negative (-1 = last)
+  # usage: somecmd | ix 2
+  #        somecmd | ix -1
+  local idx="${1:?Index required}"
+  awk -v idx="$idx" '
+    { a[NR-1]=$0 }
+    END {
+      n=NR
+      if (n==0) { print "No input received." > "/dev/stderr"; exit 1 }
+      j=idx
+      if (j < 0) j = n + j
+      if (j < 0 || j >= n) {
+        printf "Index %d is out of range (valid: 0 .. %d or negative indices -1 .. -%d).\n", idx, n-1, n > "/dev/stderr"
+        exit 1
+      }
+      print a[j]
+    }
+  '
+}
+
+split() {
+  # usage: split "a b  c" " " --remove-empty
+  local s="${1:?string required}"
+  local sep="${2- }"
+  local remove="${3-}"
+  if [[ "$remove" == "--remove-empty" ]]; then
+    awk -v s="$s" -v sep="$sep" '
+      BEGIN{
+        n=split(s, a, sep)
+        for(i=1;i<=n;i++) if (a[i] !~ /^[[:space:]]*$/) print a[i]
+      }'
+  else
+    awk -v s="$s" -v sep="$sep" '
+      BEGIN{
+        n=split(s, a, sep)
+        for(i=1;i<=n;i++) print a[i]
+      }'
+  fi
+}
+
+count() {
+  # prints "Index Value" (Value is the whole line)
+  # usage: somecmd | count
+  awk '{ print NR-1, $0 }'
+}
+
+gitswitch() {
+  # usage: echo branchname | gitswitch
+  #        gitswitch branchname
+  local b="${1-}"
+  if [[ -z "$b" ]]; then
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && git switch "$line"
+    done
+  else
+    git switch "$b"
+  fi
+}
+
+gitdelete() {
+  # usage: echo branchname | gitdelete
+  #        gitdelete branchname
+  local b="${1-}"
+  if [[ -z "$b" ]]; then
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && git branch -D "$line"
+    done
+  else
+    git branch -D "$b"
+  fi
+}
+
+# ---- SSH key copy (ssh-copy-id analogue but keeps your behavior) ----
+Copy_SshKey() {
+  # usage: Copy_SshKey user host [keyPath]
+  local user="${1:?User required}"
+  local host="${2:?Hostname required}"
+  local keyPath="${3:-$HOME/.ssh/id_rsa.pub}"
+
+  [[ -f "$keyPath" ]] || { echo "Public key not found at: $keyPath" >&2; return 1; }
+
+  local pubKey
+  pubKey="$(cat "$keyPath")"
+
+  ssh "${user}@${host}" "mkdir -p ~/.ssh && chmod 700 ~/.ssh && printf '%s\n' '$pubKey' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+}
+
+# ---- git-clean-branch analogue ----
+git_clean_branch() {
+  # usage: git_clean_branch <pattern> <index>
+  local pattern="${1:?Pattern required}"
+  local index="${2:?Index required}"
+
+  local branch
+  branch="$(
+    git branch -a |
+      grep -F "$pattern" |
+      tr |
+      no_remotes |
+      ix "$index"
+  )" || return 1
+
+  echo -e "\033[33mRemote branch selected:\033[0m"
+  echo -e "  \033[36m$branch\033[0m"
+
+  read -r -p "Delete remote branch '$branch'? (y/N) " confirm
+  [[ "$confirm" =~ ^[Yy]$ ]] || { echo -e "\033[90mAborted.\033[0m"; return 0; }
+
+  read -r -p "Enter commit text to check (case-insensitive) or press Enter to skip " text
+  if [[ -n "$text" ]]; then
+    local matches
+    matches="$(git log --all --pretty=format:"%H %s" | grep -i -- "$text" || true)"
+    if [[ -n "$matches" ]]; then
+      echo
+      echo -e "\033[31m⚠ Matching commits found:\033[0m"
+      while IFS= read -r line; do
+        echo -e "  \033[31m$line\033[0m"
+      done <<< "$matches"
+      echo
+      read -r -p "Commits contain '$text'. Delete branch anyway? (y/N) " confirm2
+      [[ "$confirm2" =~ ^[Yy]$ ]] || { echo -e "\033[90mAborted due to commit check.\033[0m"; return 0; }
+    fi
+  fi
+
+  git push --delete origin "$branch"
+}
+
+# ---- prompt (Bash) ----
+# Similar idea: [branch*] + shortened path under $PROJECT_PATH.
+__git_prompt_info() {
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+
+  local branch upstreamMark status staged unstaged color
+  local reset red green
+  reset="\[\e[0m\]"; red="\[\e[31m\]"; green="\[\e[32m\]"
+
+  branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" || return 0
+
+  if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
+    upstreamMark="*"
+  else
+    upstreamMark=""
+  fi
+
+  status="$(git status --porcelain 2>/dev/null)"
+  color="$reset"
+
+  if [[ -n "$status" ]]; then
+    # staged changes: first column not space or ?
+    staged="$(printf '%s\n' "$status" | awk 'substr($0,1,1)!=" " && substr($0,1,1)!="?" {c++} END{print c+0}')"
+    # unstaged changes: second column not space
+    unstaged="$(printf '%s\n' "$status" | awk 'substr($0,2,1)!=" " {c++} END{print c+0}')"
+
+    if (( unstaged > 0 )); then
+      color="$red"
+    elif (( staged > 0 )); then
+      color="$green"
+    fi
+  fi
+
+  printf "%s[%s%s]%s " "$color" "$branch" "$upstreamMark" "$reset"
+}
+
+__short_path_under_project() {
+  local esc reset cyan
+  esc=$'\e'; reset="${esc}[0m"; cyan="${esc}[36m"
+
+  local cur="$PWD"
+  local proj="$PROJECT_PATH"
+
+  # case-insensitive-ish compare on Windows shells is tricky; this is basic
+  if [[ "$cur" == "$proj" ]]; then
+    printf "%b%s%b" "$cyan" '$proj\' "$reset"
+  elif [[ "$cur" == "$proj/"* ]]; then
+    printf "%b%s%b" "$cyan" '$proj\'"${cur#$proj/}" "$reset"
+  else
+    printf "%s" "$cur"
+  fi
+}
+
+# Enable prompt in bash:
+if [[ -n "${BASH_VERSION-}" ]]; then
+  fastfetch
+  # PS1='[\u@\h \W$(__git_prompt_info)]\$ '
+fi
