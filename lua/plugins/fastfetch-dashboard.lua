@@ -1,19 +1,49 @@
-local function get_fastfetch()
-  local handle = io.popen("fastfetch --pipe --disable-linewrap --no-buffer --logo-type none")
+local function get_fastfetch(isLogo)
+  isLogo = isLogo or false
+  local shCommand = "fastfetch --pipe --disable-linewrap --no-buffer" .. (isLogo and "" or " --logo-type none")
+  local handle = io.popen(shCommand)
   if not handle then
     return "fastfetch not available"
   end
+
   local result = handle:read("*a")
   handle:close()
   if not result then
     return "fastfetch failed"
   end
+
   -- More aggressive cleanup
   result = result:gsub("\27%[[%d;]*[ABCDEFGHJKSTfmnsulh]", "") -- Remove all ANSI sequences
   result = result:gsub("[\128-\255]", "") -- Remove all non-ASCII characters
 
-  -- Left align by removing leading whitespace from each line
-  result = result:gsub("\n%s*", "\n"):gsub("^%s*", "")
+  local maxWidth = 51
+  local cropped_lines = {}
+  local i = 0
+  for line in result:gmatch("[^\n]+") do
+    i = i + 1
+    if #line > maxWidth then
+      line = line:sub(1, maxWidth)
+    end
+    if #line < maxWidth then
+      -- Add spaces at the end.
+      line = line .. string.rep(" ", maxWidth - #line)
+    end
+    if (i == 1) then
+      line = "  ! Welcome back to NEOVIM !"
+    end
+    if (i == 2) then
+      line = ""
+    end
+    if (line:find("^Disk") == nil and line:find("^Batter") == nil) then
+      if (i > 2 and i < 24) then
+        line = "   █  " .. line .. "  █"
+      end
+      table.insert(cropped_lines,line)
+    end
+  end
+
+  vim.notify(i)
+  result = table.concat(cropped_lines, "\n")
 
   return result
 end
