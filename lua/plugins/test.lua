@@ -20,6 +20,13 @@ return {
 -- },
 -- { "nvim-neotest/nvim-nio" },
 {
+  "Issafalcon/neotest-dotnet",
+  lazy = false,
+  dependencies = {
+    "nvim-neotest/neotest",
+  },
+},
+{
   "nvim-neotest/neotest",
   dependencies = {
     "nvim-neotest/nvim-nio",
@@ -37,12 +44,5 @@ return {
       },
     })
   end,
-},
-{
-  "Issafalcon/neotest-dotnet",
-  lazy = false,
-  dependencies = {
-    "nvim-neotest/neotest",
-  },
 },
 }
