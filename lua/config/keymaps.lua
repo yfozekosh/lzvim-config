@@ -39,6 +39,10 @@ vim.keymap.set("n", "<C-r><C-r>", function()
   vim.lsp.buf.rename()
 end, { desc = "Rename", noremap = true, silent = true })
 
+vim.api.nvim_create_user_command("Db", function()
+  require("dbee").open()
+end, {})
+
 require("config.ComplexKeymaps.dotnet-build")
 require("config.ComplexKeymaps.dotnet-format")
 
