@@ -7,10 +7,11 @@
 
 return {
   -- add gruvbox
-  -- { "ellisonleao/gruvbox.nvim" },
+  { "ellisonleao/gruvbox.nvim" },
   { "nvim-mini/mini.animate", enabled = false },
   { "Mofiqul/vscode.nvim", enabled = true },
   { "johngrib/vim-game-snake" },
+  {"alec-gibson/nvim-tetris"},
 
   -- Configure LazyVim to load gruvbox
   {
