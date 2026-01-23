@@ -273,3 +273,7 @@ docker-clear() {
   docker stop $(docker ps -q)
   docker rm $(docker ps -a -q)
 }
+
+profile() {
+  nvim ~/.bash_profile_yf && source ~/.bash_profile_yf
+}

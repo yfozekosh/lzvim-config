@@ -70,4 +70,22 @@ ensure_bashrc_source() {
 }
 run_migration "bashrc_source" ensure_bashrc_source
 
+# Migration 5: build tmux-mem-cpu-load
+install_tmux_mem_cpu_load() {
+  local repo_dir="$PWD/app-forks/tmux-mem-cpu-load"
+  if [ ! -d "$repo_dir" ]; then
+    echo "cannot find tmux-mem-cpu-load directory at $repo_dir"
+    exit 1
+  fi
+
+  # save current dir
+  pushd $repo_dir
+  cmake .
+  make
+  sudo make install
+  popd
+}
+run_migration "install_tmux_mem_cpu_load" install_tmux_mem_cpu_load
+
 echo "Setup complete."
+bat ~/.yf_setup_migrationlog
