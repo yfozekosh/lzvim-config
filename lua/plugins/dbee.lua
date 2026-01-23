@@ -17,7 +17,7 @@ return {
     end,
   },
   {
-    dir = "~/forks/nvim-dbee",
+    dir = "~/.config/nvim/plugin-forks/nvim-dbee/",
     enabled = true,
     name="yf-dbee.nvim",
     build = function()

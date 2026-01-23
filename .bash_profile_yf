@@ -283,3 +283,5 @@ ask () {
   # Use a fixed command name for consistent averaging across different prompts
   ~/.config/nvim/app-forks/spinner.sh --cmd-name "ask" bash -c "copilot -s --model gpt-4.1 -p \"$prompt\" | bat -l md"
 }
+alias l="ls -l"
+alias la="ls -l -a"
