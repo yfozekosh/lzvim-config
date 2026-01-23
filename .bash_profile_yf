@@ -210,15 +210,19 @@ git_clean_branch() {
   git push --delete origin "$branch"
 }
 
-# ---- prompt (Bash) ----
-# Similar idea: [branch*] + shortened path under $PROJECT_PATH.
+PS1_RESET="\[\e[0m\]"
+PS1_RED="\[\e[31m\]"
+PS1_GREEN="\[\e[32m\]"
+PS1_CYAN="\[\e[36m\]"
+PS1_BOLD="\[\e[1m\]"
+PS1_MAGENTA="\[\e[35m\]"
+PS1_YELLOW="\[\e[33m\]"
+
+# --- Git branch and status for prompt ---
 __git_prompt_info() {
   git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
 
   local branch upstreamMark status staged unstaged color
-  local reset red green
-  reset="\[\e[0m\]"; red="\[\e[31m\]"; green="\[\e[32m\]"
-
   branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" || return 0
 
   if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
@@ -228,36 +232,30 @@ __git_prompt_info() {
   fi
 
   status="$(git status --porcelain 2>/dev/null)"
-  color="$reset"
-
+  color="$PS1_RESET"
   if [[ -n "$status" ]]; then
-    # staged changes: first column not space or ?
     staged="$(printf '%s\n' "$status" | awk 'substr($0,1,1)!=" " && substr($0,1,1)!="?" {c++} END{print c+0}')"
-    # unstaged changes: second column not space
     unstaged="$(printf '%s\n' "$status" | awk 'substr($0,2,1)!=" " {c++} END{print c+0}')"
-
     if (( unstaged > 0 )); then
-      color="$red"
+      color="$PS1_RED"
     elif (( staged > 0 )); then
-      color="$green"
+      color="$PS1_GREEN"
     fi
   fi
 
-  printf "%s[%s%s]%s " "$color" "$branch" "$upstreamMark" "$reset"
+  printf "%s[%s%s]%s " "$color" "$branch" "$upstreamMark" "$PS1_RESET"
 }
 
+# --- Short path under project for prompt ---
 __short_path_under_project() {
-  local esc reset cyan
-  esc=$'\e'; reset="${esc}[0m"; cyan="${esc}[36m"
-
   local cur="$PWD"
-  local proj="$PROJECT_PATH"
-
-  # case-insensitive-ish compare on Windows shells is tricky; this is basic
+  local proj="/home/yfozekosh"
   if [[ "$cur" == "$proj" ]]; then
-    printf "%b%s%b" "$cyan" '$proj\' "$reset"
-  elif [[ "$cur" == "$proj/"* ]]; then
-    printf "%b%s%b" "$cyan" '$proj\'"${cur#$proj/}" "$reset"
+    printf "%b%s%b" "$PS1_CYAN" '~' "$PS1_RESET"
+  elif [[ "$cur" == "$proj"* ]]; then
+    local rel="${cur#$proj}"
+    [[ -z "$rel" ]] && rel="/"  # handle root case
+    printf "%b~%s%b" "$PS1_CYAN" "$rel" "$PS1_RESET"
   else
     printf "%s" "$cur"
   fi
@@ -267,4 +265,11 @@ __short_path_under_project() {
 if [[ -n "${BASH_VERSION-}" ]]; then
   fastfetch
   # PS1='[\u@\h \W$(__git_prompt_info)]\$ '
+  # PROMPT_COMMAND='PS1="$(__git_prompt_info)$(__short_path_under_project)\n\$ "'
+  PROMPT_COMMAND='PS1="(>_>) ${PS1_GREEN}${PS1_BOLD}${PS1_MAGENTA}$(__git_prompt_info)${PS1_YELLOW}$(__short_path_under_project)${PS1_GREEN}${PS1_BOLD}${PS1_RESET}\n\$ "'
 fi
+
+docker-clear() {
+  docker stop $(docker ps -q)
+  docker rm $(docker ps -a -q)
+}
