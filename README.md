@@ -14,12 +14,33 @@
    git clone git@github.com:yfozekosh/lzvim-config.git ~/.config/nvim
    ```
 
-3. Start Neovim:
+3. Run the setup script to install dependencies and configure the environment:
+
+   ```bash
+   ./setup.sh
+   ```
+   
+   This will install required packages (tmux, git, gcc, neovim, bat), set up tmux plugin manager, symlink configs, and build tmux-mem-cpu-load.
+
+4. Start Neovim:
 
    ```bash
    nvim
    ```
    Lazy.nvim will automatically install all plugins on first launch.
+
+## Building nvim-dbee (for WSL users)
+
+If you're using WSL, the dbee backend needs to be built and run on Windows due to Azure authentication requirements. A build script is provided in `plugin-forks/nvim-dbee/build-for-wsl.sh`.
+
+To build the dbee backend:
+
+```bash
+cd plugin-forks/nvim-dbee
+./build-for-wsl.sh
+```
+
+**Note:** This script must be run manually. It builds the Windows executable and places it in `/mnt/c/__Projects/dbee.exe`.
 
 ## Description
 
