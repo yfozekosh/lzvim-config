@@ -46,3 +46,6 @@ end, {})
 require("config.ComplexKeymaps.dotnet-build")
 require("config.ComplexKeymaps.dotnet-format")
 
+vim.keymap.set("n", "<leader>fw", function()
+  vim.notify(vim.fn.expand("%:p"))
+end, { desc = "Show file path", noremap = true })
