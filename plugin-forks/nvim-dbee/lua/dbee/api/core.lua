@@ -126,6 +126,7 @@ end
 ---@param id connection_id
 ---@return DBStructure[]
 function core.connection_get_structure(id)
+  vim.notify("(core) loading database structure...", vim.log.levels.INFO)
   return state.handler():connection_get_structure(id)
 end
 

@@ -67,6 +67,7 @@ function Handler:source_reload(id)
 
   -- close old connections
   for _, c in ipairs(self:source_get_connections(id)) do
+    vim.notify("deleting connection: " .. c.name, vim.log.levels.DEBUG, { title = "dbee.core" })
     pcall(vim.fn.DbeeDeleteConnection, c.id)
   end
 
@@ -78,8 +79,10 @@ function Handler:source_reload(id)
         string.format('connection without an id: { name: "%s", type: %s, url: %s } ', spec.name, spec.type, spec.url)
       )
     end
+    vim.notify("creating connection: " .. spec.name, vim.log.levels.DEBUG, { title = "dbee.core" })
 
     local conn_id = vim.fn.DbeeCreateConnection(spec)
+    vim.notify("created connection: " .. spec.name, vim.log.levels.DEBUG, { title = "dbee.core" })
     table.insert(self.source_conn_lookup[id], conn_id)
   end
 end
@@ -160,6 +163,7 @@ function Handler:source_get_connections(id)
     return {}
   end
 
+  vim.notify("loading connections for source: " .. id, vim.log.levels.DEBUG, { title = "dbee.core" })
   ---@type ConnectionParams[]?
   local ret = vim.fn.DbeeGetConnections(conn_ids)
   if not ret or ret == vim.NIL then
@@ -176,6 +180,7 @@ end
 ---@param helpers table<string, table_helpers> extra helpers per type
 function Handler:add_helpers(helpers)
   for type, help in pairs(helpers) do
+    vim.notify("adding helpers for type: " .. type, vim.log.levels.DEBUG, { title = "dbee.core" })
     vim.fn.DbeeAddHelpers(type, help)
   end
 end
@@ -184,6 +189,7 @@ end
 ---@param opts TableOpts
 ---@return table_helpers helpers list of table helpers
 function Handler:connection_get_helpers(id, opts)
+  vim.notify("loading helpers for connection: " .. id, vim.log.levels.DEBUG, { title = "dbee.core" })
   local helpers = vim.fn.DbeeConnectionGetHelpers(id, {
     table = opts.table,
     schema = opts.schema,
@@ -198,6 +204,7 @@ end
 
 ---@return ConnectionParams?
 function Handler:get_current_connection()
+  vim.notify("loading current connection", vim.log.levels.DEBUG, { title = "dbee.core" })
   local ok, ret = pcall(vim.fn.DbeeGetCurrentConnection)
   if not ok or ret == vim.NIL then
     return
@@ -207,6 +214,7 @@ end
 
 ---@param id connection_id
 function Handler:set_current_connection(id)
+  vim.notify("setting current connection: " .. id, vim.log.levels.DEBUG, { title = "dbee.core" })
   vim.fn.DbeeSetCurrentConnection(id)
 end
 
@@ -214,12 +222,14 @@ end
 ---@param query string
 ---@return CallDetails
 function Handler:connection_execute(id, query)
+  vim.notify("executing query on connection: " .. id, vim.log.levels.DEBUG, { title = "dbee.core" })
   return vim.fn.DbeeConnectionExecute(id, query)
 end
 
 ---@param id connection_id
 ---@return DBStructure[]
 function Handler:connection_get_structure(id)
+  vim.notify("loading structure for connection: " .. id, vim.log.levels.DEBUG, { title = "dbee.core" })
   local ret = vim.fn.DbeeConnectionGetStructure(id)
   if not ret or ret == vim.NIL then
     return {}
@@ -231,6 +241,7 @@ end
 ---@param opts { table: string, schema: string, materialization: string }
 ---@return Column[]
 function Handler:connection_get_columns(id, opts)
+  vim.notify("loading columns for connection: " .. id, vim.log.levels.DEBUG, { title = "dbee.core" })
   local out = vim.fn.DbeeConnectionGetColumns(id, opts)
   if not out or out == vim.NIL then
     return {}
@@ -242,6 +253,7 @@ end
 ---@param id connection_id
 ---@return ConnectionParams?
 function Handler:connection_get_params(id)
+  vim.notify("loading params for connection: " .. id, vim.log.levels.DEBUG, { title = "dbee.core" })
   local ret = vim.fn.DbeeConnectionGetParams(id)
   if not ret or ret == vim.NIL then
     return
@@ -253,6 +265,7 @@ end
 ---@return string current_db
 ---@return string[] available_dbs
 function Handler:connection_list_databases(id)
+  vim.notify("listing databases for connection: " .. id, vim.log.levels.DEBUG, { title = "dbee.core" })
   local ret = vim.fn.DbeeConnectionListDatabases(id)
   if not ret or ret == vim.NIL then
     return "", {}
@@ -264,12 +277,18 @@ end
 ---@param id connection_id
 ---@param database string
 function Handler:connection_select_database(id, database)
+  vim.notify(
+    "selecting database '" .. database .. "' for connection: " .. id,
+    vim.log.levels.DEBUG,
+    { title = "dbee.core" }
+  )
   vim.fn.DbeeConnectionSelectDatabase(id, database)
 end
 
 ---@param id connection_id
 ---@return CallDetails[]
 function Handler:connection_get_calls(id)
+  vim.notify("loading calls for connection: " .. id, vim.log.levels.DEBUG, { title = "dbee.core" })
   local ret = vim.fn.DbeeConnectionGetCalls(id)
   if not ret or ret == vim.NIL then
     return {}
@@ -279,6 +298,7 @@ end
 
 ---@param id call_id
 function Handler:call_cancel(id)
+  vim.notify("cancelling call: " .. id, vim.log.levels.DEBUG, { title = "dbee.core" })
   vim.fn.DbeeCallCancel(id)
 end
 
@@ -288,6 +308,7 @@ end
 ---@param to integer
 ---@return integer # total number of rows
 function Handler:call_display_result(id, bufnr, from, to)
+  vim.notify("displaying result for call: " .. id, vim.log.levels.DEBUG, { title = "dbee.core" })
   local length = vim.fn.DbeeCallDisplayResult(id, { buffer = bufnr, from = from, to = to })
   if not length or length == vim.NIL then
     return 0
@@ -308,6 +329,11 @@ function Handler:call_store_result(id, format, output, opts)
   local from = opts.from or 0
   local to = opts.to or -1
 
+  vim.notify(
+    "storing result for call: " .. id .. " format: " .. format .. " output: " .. output,
+    vim.log.levels.DEBUG,
+    { title = "dbee.core" }
+  )
   vim.fn.DbeeCallStoreResult(id, format, output, {
     from = from,
     to = to,

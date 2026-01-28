@@ -4,6 +4,38 @@ local NuiTree = require("nui.tree")
 
 local M = {}
 
+-- Cache for connection structure and database list
+-- Key: connection_id, Value: { structure = {...}, databases = {...}, timestamp = timestamp }
+local structure_cache = {}
+local CACHE_TTL_MS = 30000 -- 30 seconds cache
+
+---@param connection_id string
+---@return boolean
+local function is_cache_valid(connection_id)
+  local cached = structure_cache[connection_id]
+  if not cached then
+    return false
+  end
+  local age = vim.loop.now() - cached.timestamp
+  return age < CACHE_TTL_MS
+end
+
+---@param connection_id string
+---@param structure any
+---@param databases any
+local function cache_structure(connection_id, structure, databases)
+  structure_cache[connection_id] = {
+    structure = structure,
+    databases = databases,
+    timestamp = vim.loop.now(),
+  }
+end
+
+---@param connection_id string
+local function invalidate_cache(connection_id)
+  structure_cache[connection_id] = nil
+end
+
 ---@param parent_id string
 ---@param columns Column[]
 ---@return DrawerUINode[]
@@ -88,11 +120,28 @@ local function connection_nodes(handler, conn, result)
     return nodes
   end
 
+  -- Use cache if available and valid
+  local structure, current_db, available_dbs
+
+  if is_cache_valid(conn.id) then
+    vim.notify("for connection " .. conn.id .. ", using cached structure", vim.log.levels.DEBUG, { title = "dbee.ui.drawer" })
+    local cached = structure_cache[conn.id]
+    structure = cached.structure
+    current_db = cached.databases.current
+    available_dbs = cached.databases.available
+  else
+    -- Fetch fresh data
+    structure = handler:connection_get_structure(conn.id)
+    current_db, available_dbs = handler:connection_list_databases(conn.id)
+
+    -- Cache the results
+    cache_structure(conn.id, structure, { current = current_db, available = available_dbs })
+  end
+
   -- recursively parse structure to drawer nodes
-  local nodes = to_tree_nodes(handler:connection_get_structure(conn.id), conn.id)
+  local nodes = to_tree_nodes(structure, conn.id)
 
   -- database switching
-  local current_db, available_dbs = handler:connection_list_databases(conn.id)
   if current_db ~= "" and #available_dbs > 0 then
     local ly = NuiTree.Node {
       id = conn.id .. "_database_switch__",
@@ -104,6 +153,8 @@ local function connection_nodes(handler, conn, result)
           items = available_dbs,
           on_confirm = function(selection)
             handler:connection_select_database(conn.id, selection)
+            -- Invalidate cache when switching databases
+            invalidate_cache(conn.id)
             cb()
           end,
         }
@@ -478,6 +529,11 @@ function M.editor_nodes(editor, current_connection_id, refresh)
   end
 
   return nodes
+end
+
+-- Export cache invalidation function
+M.invalidate_structure_cache = function()
+  structure_cache = {}
 end
 
 return M

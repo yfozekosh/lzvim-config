@@ -87,12 +87,23 @@ func (c *sqlServerDriver) SelectDatabase(name string) error {
 	q.Set("database", name)
 	c.url.RawQuery = q.Encode()
 
-	db, err := sql.Open("sqlserver", c.url.String())
+	// Determine which driver to use based on authentication method
+	driverName := "sqlserver"
+	if fedauth := q.Get("fedauth"); fedauth != "" {
+		driverName = "azuresql"
+	}
+
+	db, err := sql.Open(driverName, c.url.String())
 	if err != nil {
 		return fmt.Errorf("unable to switch databases: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// Configure connection pool
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := db.PingContext(ctx); err != nil {

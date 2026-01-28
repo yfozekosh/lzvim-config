@@ -102,6 +102,7 @@ function DrawerUI:new(handler, editor, result, opts)
   end)
 
   editor:register_event_listener("current_note_changed", function(data)
+    vim.notify("note changed")
     o:on_current_note_changed(data)
   end)
 
@@ -315,6 +316,9 @@ end
 
 ---Refreshes the tree.
 function DrawerUI:refresh()
+  -- Invalidate structure cache on manual refresh
+  convert.invalidate_structure_cache()
+  
   -- assemble tree layout
   ---@type DrawerUINode[]
   local nodes = {}

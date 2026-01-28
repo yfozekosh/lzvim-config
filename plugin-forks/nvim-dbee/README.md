@@ -392,6 +392,51 @@ If you start neovim in the same shell, this will evaluate to the following conne
 } }
 ```
 
+#### SQL Server Azure AD Authentication
+
+For SQL Server connections, you can use Azure Active Directory authentication (equivalent to `sqlcmd -G`).
+Add the `fedauth` parameter to your connection URL:
+
+```lua
+{
+  name = "Azure SQL Database",
+  type = "sqlserver",
+  url = "sqlserver://myserver.database.windows.net?database=mydb&fedauth=ActiveDirectoryDefault",
+}
+```
+
+Available Azure AD authentication methods:
+
+- `ActiveDirectoryDefault` - Uses Azure credential chain (environment, managed identity, Azure CLI, etc.)
+- `ActiveDirectoryManagedIdentity` - Uses system or user-assigned managed identity
+- `ActiveDirectoryServicePrincipal` - Uses service principal with client ID and secret
+- `ActiveDirectoryPassword` - Uses username and password authentication
+
+Examples:
+
+```lua
+-- Using Azure Default authentication (recommended)
+{
+  name = "Azure SQL - Default Auth",
+  type = "sqlserver",
+  url = "sqlserver://myserver.database.windows.net?database=mydb&fedauth=ActiveDirectoryDefault",
+}
+
+-- Using Managed Identity
+{
+  name = "Azure SQL - Managed Identity",
+  type = "sqlserver",
+  url = "sqlserver://myserver.database.windows.net?database=mydb&fedauth=ActiveDirectoryManagedIdentity",
+}
+
+-- Using Service Principal with secrets from environment
+{
+  name = "Azure SQL - Service Principal",
+  type = "sqlserver",
+  url = "sqlserver://{{ env \"AZURE_CLIENT_ID\" }}@myserver.database.windows.net?database=mydb&fedauth=ActiveDirectoryServicePrincipal&password={{ env \"AZURE_CLIENT_SECRET\" }}&tenant id={{ env \"AZURE_TENANT_ID\" }}",
+}
+```
+
 ## API
 
 Dbee comes with it's own API interface. It is split into two parts:

@@ -76,7 +76,7 @@ tr() {
   sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 
-no_remotes() {
+no-remotes() {
   # remove leading "remotes/origin/" from each input line
   # usage: git branch -a | no_remotes
   sed 's#^remotes/origin/##'

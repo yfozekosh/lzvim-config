@@ -164,6 +164,7 @@ end
 ---Triggers an in-built action.
 ---@param action string
 function EditorUI:do_action(action)
+  vim.notify("Triggering editor action: " .. action, vim.log.levels.DEBUG, { title = "dbee.editor" })
   local act = self:get_actions()[action]
   if not act then
     error("unknown action: " .. action)
@@ -175,6 +176,7 @@ end
 ---@param event editor_event_name
 ---@param data any
 function EditorUI:trigger_event(event, data)
+  vim.notify("Triggering editor event: " .. event, vim.log.levels.DEBUG, { title = "dbee.editor" })
   local cbs = self.event_callbacks[event] or {}
   for _, cb in ipairs(cbs) do
     cb(data)
@@ -395,6 +397,7 @@ function EditorUI:note_rename(id, name)
   self.notes[namespace][id].file = new_file
   self.notes[namespace][id].name = name
 
+  vim.notify("Renamed note to: " .. name, vim.log.levels.INFO, { title = "dbee.editor" })
   self:trigger_event("note_state_changed", { note = self.notes[namespace][id] })
 end
 
@@ -422,6 +425,7 @@ function EditorUI:set_current_note(id)
 
   self:display_note(id)
 
+  vim.notify("Switched to note: " .. note.name, vim.log.levels.INFO, { title = "dbee.editor" })
   self:trigger_event("current_note_changed", { note_id = id })
 end
 

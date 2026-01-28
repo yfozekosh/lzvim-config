@@ -5,10 +5,12 @@ import (
 	"encoding/gob"
 	"fmt"
 	nurl "net/url"
+	"time"
 
 	"github.com/google/uuid"
 	_ "github.com/microsoft/go-mssqldb"
 	_ "github.com/microsoft/go-mssqldb/integratedauth/krb5"
+	_ "github.com/microsoft/go-mssqldb/azuread"
 
 	"github.com/kndndrj/nvim-dbee/dbee/core"
 	"github.com/kndndrj/nvim-dbee/dbee/core/builders"
@@ -31,10 +33,32 @@ func (s *SQLServer) Connect(url string) (core.Driver, error) {
 		return nil, fmt.Errorf("could not parse db connection string: %w: ", err)
 	}
 
-	db, err := sql.Open("sqlserver", u.String())
+	// Determine which driver to use based on authentication method
+	driverName := "sqlserver"
+	query := u.Query()
+	if fedauth := query.Get("fedauth"); fedauth != "" {
+		// Use azuresql driver for Azure AD authentication
+		driverName = "azuresql"
+		
+		// Set reasonable defaults for Azure AD if not specified
+		if query.Get("connection timeout") == "" {
+			query.Set("connection timeout", "30")
+		}
+		if query.Get("dial timeout") == "" {
+			query.Set("dial timeout", "15")
+		}
+		u.RawQuery = query.Encode()
+	}
+
+	db, err := sql.Open(driverName, u.String())
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to sqlserver database: %v", err)
 	}
+
+	// Configure connection pool for better performance
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	return &sqlServerDriver{
 		c: builders.NewClient(db,
