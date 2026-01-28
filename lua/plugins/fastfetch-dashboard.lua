@@ -28,17 +28,17 @@ local function get_fastfetch(isLogo)
       -- Add spaces at the end.
       line = line .. string.rep(" ", maxWidth - #line)
     end
-    if (i == 1) then
+    if i == 1 then
       line = "  ! Welcome back to NEOVIM !"
     end
-    if (i == 2) then
+    if i == 2 then
       line = ""
     end
-    if (line:find("^Disk") == nil and line:find("^Batter") == nil) then
-      if (i > 2 and i < 24) then
+    if line:find("^Disk") == nil and line:find("^Batter") == nil then
+      if i > 2 and i < 24 then
         line = "   █  " .. line .. "  █"
       end
-      table.insert(cropped_lines,line)
+      table.insert(cropped_lines, line)
     end
   end
 
@@ -59,6 +59,7 @@ return {
         header = get_fastfetch(),
         ---@type snacks.dashboard.Item[]
         keys = {
+          { icon = "", key = "w", desc = "Open Last File", action = ":LastFile" },
           { icon = " ", key = "f", desc = "Find File", action = ":lua Snacks.dashboard.pick('files')" },
           { icon = " ", key = "n", desc = "New File", action = ":ene | startinsert" },
           { icon = " ", key = "g", desc = "Find Text", action = ":lua Snacks.dashboard.pick('live_grep')" },
