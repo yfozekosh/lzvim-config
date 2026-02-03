@@ -3,13 +3,16 @@
 # .bashrc
 #
 # ---- paths ----
-export PROJECT_PATH=~/dispute/     # on Git Bash / MSYS
+export PROJECT_PATH=~/dispute/ # on Git Bash / MSYS
 # export PROJECT_PATH="$HOME/__Projects/dispute" # example for Linux/macOS
 export COMPOSE_FOLDER_PATH="$PROJECT_PATH/src/docker-compose"
 
 # ---- utils ----
 cc() { clear; }
-rp() { source ~/.bashrc 2>/dev/null || true; source ~/.zshrc 2>/dev/null || true; }
+rp() {
+  source ~/.bashrc 2>/dev/null || true
+  source ~/.zshrc 2>/dev/null || true
+}
 cdp() { cd $PROJECT_PATH || return; }
 
 # ---- git log helpers ----
@@ -17,17 +20,21 @@ gg() {
   local n=7
   # If first arg is an int, treat it as n
   if [[ "${1-}" =~ ^-?[0-9]+$ ]]; then
-    n="$1"; shift
+    n="$1"
+    shift
   fi
 
-  if (( n > 0 )); then
+  if ((n > 0)); then
     git log --oneline --graph --decorate --all -n "$n" "$@"
   else
     git log --oneline --graph --decorate --all "$@"
   fi
 }
 gga() { gg 0 "$@"; }
-cgg() { cc; gg; }
+cgg() {
+  cc
+  gg
+}
 
 # ---- project scripts ----
 format() (
@@ -162,7 +169,10 @@ Copy_SshKey() {
   local host="${2:?Hostname required}"
   local keyPath="${3:-$HOME/.ssh/id_rsa.pub}"
 
-  [[ -f "$keyPath" ]] || { echo "Public key not found at: $keyPath" >&2; return 1; }
+  [[ -f "$keyPath" ]] || {
+    echo "Public key not found at: $keyPath" >&2
+    return 1
+  }
 
   local pubKey
   pubKey="$(cat "$keyPath")"
@@ -189,7 +199,10 @@ git_clean_branch() {
   echo -e "  \033[36m$branch\033[0m"
 
   read -r -p "Delete remote branch '$branch'? (y/N) " confirm
-  [[ "$confirm" =~ ^[Yy]$ ]] || { echo -e "\033[90mAborted.\033[0m"; return 0; }
+  [[ "$confirm" =~ ^[Yy]$ ]] || {
+    echo -e "\033[90mAborted.\033[0m"
+    return 0
+  }
 
   read -r -p "Enter commit text to check (case-insensitive) or press Enter to skip " text
   if [[ -n "$text" ]]; then
@@ -200,10 +213,13 @@ git_clean_branch() {
       echo -e "\033[31m⚠ Matching commits found:\033[0m"
       while IFS= read -r line; do
         echo -e "  \033[31m$line\033[0m"
-      done <<< "$matches"
+      done <<<"$matches"
       echo
       read -r -p "Commits contain '$text'. Delete branch anyway? (y/N) " confirm2
-      [[ "$confirm2" =~ ^[Yy]$ ]] || { echo -e "\033[90mAborted due to commit check.\033[0m"; return 0; }
+      [[ "$confirm2" =~ ^[Yy]$ ]] || {
+        echo -e "\033[90mAborted due to commit check.\033[0m"
+        return 0
+      }
     fi
   fi
 
@@ -236,9 +252,9 @@ __git_prompt_info() {
   if [[ -n "$status" ]]; then
     staged="$(printf '%s\n' "$status" | awk 'substr($0,1,1)!=" " && substr($0,1,1)!="?" {c++} END{print c+0}')"
     unstaged="$(printf '%s\n' "$status" | awk 'substr($0,2,1)!=" " {c++} END{print c+0}')"
-    if (( unstaged > 0 )); then
+    if ((unstaged > 0)); then
       color="$PS1_RED"
-    elif (( staged > 0 )); then
+    elif ((staged > 0)); then
       color="$PS1_GREEN"
     fi
   fi
@@ -254,7 +270,7 @@ __short_path_under_project() {
     printf "%b%s%b" "$PS1_CYAN" '~' "$PS1_RESET"
   elif [[ "$cur" == "$proj"* ]]; then
     local rel="${cur#$proj}"
-    [[ -z "$rel" ]] && rel="/"  # handle root case
+    [[ -z "$rel" ]] && rel="/" # handle root case
     printf "%b~%s%b" "$PS1_CYAN" "$rel" "$PS1_RESET"
   else
     printf "%s" "$cur"
@@ -266,7 +282,11 @@ if [[ -n "${BASH_VERSION-}" ]]; then
   fastfetch
   # PS1='[\u@\h \W$(__git_prompt_info)]\$ '
   # PROMPT_COMMAND='PS1="$(__git_prompt_info)$(__short_path_under_project)\n\$ "'
-  PROMPT_COMMAND='PS1="(>_>) ${PS1_GREEN}${PS1_BOLD}${PS1_MAGENTA}$(__git_prompt_info)${PS1_YELLOW}$(__short_path_under_project)${PS1_GREEN}${PS1_BOLD}${PS1_RESET}\n\$ "'
+  node_name=" $(uname -n)"
+  if [[ -n "${SKIP_NODE_NAME-}" ]]; then
+    node_name=
+  fi
+  PROMPT_COMMAND='PS1="(>_>)${node_name} ${PS1_GREEN}${PS1_BOLD}${PS1_MAGENTA}$(__git_prompt_info)${PS1_YELLOW}$(__short_path_under_project)${PS1_GREEN}${PS1_BOLD}${PS1_RESET}\n\$ "'
 fi
 
 docker-clear() {
@@ -278,10 +298,11 @@ profile() {
   nvim ~/.bash_profile_yf && source ~/.bash_profile_yf
 }
 
-ask () {
+ask() {
   local prompt="$1"
   # Use a fixed command name for consistent averaging across different prompts
   ~/.config/nvim/app-forks/spinner.sh --cmd-name "ask" bash -c "copilot -s --model gpt-4.1 -p \"$prompt\" | bat -l md"
 }
 alias l="ls -l"
 alias la="ls -l -a"
+export NODE_OPTIONS="--max-old-space-size=16192"
