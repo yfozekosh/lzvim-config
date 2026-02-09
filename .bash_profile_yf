@@ -279,14 +279,14 @@ __short_path_under_project() {
 
 # Enable prompt in bash:
 if [[ -n "${BASH_VERSION-}" ]]; then
-  fastfetch
-  # PS1='[\u@\h \W$(__git_prompt_info)]\$ '
-  # PROMPT_COMMAND='PS1="$(__git_prompt_info)$(__short_path_under_project)\n\$ "'
-  node_name=" $(uname -n)"
-  if [[ -n "${SKIP_NODE_NAME-}" ]]; then
-    node_name=
+  if [[ $- == *i* ]]; then
+    fastfetch
+    node_name=" $(uname -n)"
+    if [[ -n "${SKIP_NODE_NAME-}" ]]; then
+      node_name=
+    fi
+    PROMPT_COMMAND='PS1="(>_>)${node_name} ${PS1_GREEN}${PS1_BOLD}${PS1_MAGENTA}$(__git_prompt_info)${PS1_YELLOW}$(__short_path_under_project)${PS1_GREEN}${PS1_BOLD}${PS1_RESET}\n\$ "'
   fi
-  PROMPT_COMMAND='PS1="(>_>)${node_name} ${PS1_GREEN}${PS1_BOLD}${PS1_MAGENTA}$(__git_prompt_info)${PS1_YELLOW}$(__short_path_under_project)${PS1_GREEN}${PS1_BOLD}${PS1_RESET}\n\$ "'
 fi
 
 docker-clear() {
@@ -301,7 +301,7 @@ profile() {
 ask() {
   local prompt="$1"
   # Use a fixed command name for consistent averaging across different prompts
-  ~/.config/nvim/app-forks/spinner.sh --cmd-name "ask" bash -c "copilot -s --model gpt-4.1 -p \"$prompt\" | bat -l md"
+  ~/.config/nvim/app-forks/spinner.sh --cmd-name "ask" bash -c "copilot -s --model gpt-4.1 -p \"You are command line assistant that answers questions. Do not perform any actions and do not use tools. If you see imperative prompt like 'write ...' it means that you need to output script but not execute it. User prompt: $prompt\" | bat -l md"
 }
 alias l="ls -l"
 alias la="ls -l -a"
