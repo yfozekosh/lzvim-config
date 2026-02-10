@@ -12,12 +12,13 @@ return {
   { "Mofiqul/vscode.nvim", enabled = true },
   { "johngrib/vim-game-snake" },
   {"alec-gibson/nvim-tetris"},
+  {"shaunsingh/nord.nvim"},
 
   -- Configure LazyVim to load gruvbox
   {
     "LazyVim/LazyVim",
     opts = {
-      colorscheme = "vscode",
+      colorscheme = "nord",
       -- colorscheme = "gruvbox",
       opts = {
         root = {

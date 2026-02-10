@@ -63,3 +63,5 @@ require("mason").setup({
     "github:Crashdummyy/mason-registry",
   },
 })
+
+require("config.colors")

@@ -35,10 +35,6 @@ vim.keymap.set("n", "<F11>", function()
   vim.lsp.buf.code_action()
 end, { desc = "Quick fix", noremap = true, silent = true })
 
-vim.keymap.set("n", "<C-r><C-r>", function()
-  vim.lsp.buf.rename()
-end, { desc = "Rename", noremap = true, silent = true })
-
 vim.api.nvim_create_user_command("Db", function()
   require("dbee").open()
 end, {})
