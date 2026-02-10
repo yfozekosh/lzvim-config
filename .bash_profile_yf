@@ -303,6 +303,18 @@ ask() {
   # Use a fixed command name for consistent averaging across different prompts
   ~/.config/nvim/app-forks/spinner.sh --cmd-name "ask" bash -c "copilot -s --model gpt-4.1 -p \"You are command line assistant that answers questions. Do not perform any actions and do not use tools. If you see imperative prompt like 'write ...' it means that you need to output script but not execute it. User prompt: $prompt\" | bat -l md"
 }
+
+update_dockge() {
+  stacks=$(docker compose ls --format json | jq .[].ConfigFiles -r | grep -o "^/opt/.*/")
+  for i in $stacks; do
+    pushd $i 1>>/dev/null
+    docker compose stop
+    docker compose pull
+    docker compose up -d
+    popd 1>>/dev/null
+  done
+}
+
 alias l="ls -l"
 alias la="ls -l -a"
 export NODE_OPTIONS="--max-old-space-size=16192"
