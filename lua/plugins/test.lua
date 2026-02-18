@@ -21,6 +21,7 @@ return {
     config = function()
 ---@diagnostic disable-next-line: missing-fields
       require("neotest").setup({
+        log_level = vim.log.levels.TRACE,
         adapters = {
           require("neotest-dotnet")({
             -- Optionally configure dotnet test adapter here

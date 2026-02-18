@@ -5,7 +5,7 @@ return {
 
     dap.adapters.coreclr = {
       type = "executable",
-      command = "~/dotnetcoredbg/netcoredbg",
+      command = "/home/yfozekosh/dotnetcoredbg/netcoredbg",
       args = { "--interpreter=vscode" },
     }
 

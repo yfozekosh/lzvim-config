@@ -294,6 +294,16 @@ docker-clear() {
   docker rm $(docker ps -a -q)
 }
 
+docker-img-clear() {
+  local to_delete=$(docker image list | grep dispute)
+  for img in $to_delete; do
+    echo "Deleting image: $img"
+    docker rmi "$img"
+  done
+
+  docker -f rmi $(docker image list | grep dispute | awk '{print $2}')
+}
+
 profile() {
   nvim ~/.bash_profile_yf && source ~/.bash_profile_yf
 }
