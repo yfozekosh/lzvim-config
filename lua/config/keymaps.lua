@@ -28,6 +28,11 @@ vim.keymap.set("n", "<C-a>", "ggVG", { desc = "Select All (Normal)" })
 -- Insert mode: escape to normal, select all
 vim.keymap.set("i", "<C-a>", "<Esc>ggVG", { desc = "Select All (Insert)" })
 
+-- Accept Copilot inline suggestion with Tab in insert mode
+vim.keymap.set("i", "<Tab>", function()
+  return require("copilot.suggestion").accept() or "\t"
+end, { expr = true, desc = "Accept Copilot suggestion" })
+
 -- Visual mode: reselect entire buffer (just make sure entire buffer is selected)
 vim.keymap.set("v", "<C-a>", "<Esc>ggVG", { desc = "Select All (Visual)" })
 
