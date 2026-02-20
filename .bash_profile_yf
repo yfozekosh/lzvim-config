@@ -317,12 +317,16 @@ ask() {
 update_dockge() {
   stacks=$(docker compose ls --format json | jq .[].ConfigFiles -r | grep -o "^/opt/.*/")
   for i in $stacks; do
-    pushd $i 1>>/dev/null
+    pushd $i 1>>/dev/null || exit
     docker compose stop
     docker compose pull
     docker compose up -d
-    popd 1>>/dev/null
+    popd 1>>/dev/null || exit
   done
+}
+
+cdn(){
+  cd ~/.config/nvim || exit
 }
 
 alias l="ls -l"
