@@ -57,6 +57,12 @@ require("lazy").setup({
   },
 })
 
+-- Custom: Load LuaSnip postfix snippets
+local has_luasnip, luasnip = pcall(require, "luasnip")
+if has_luasnip then
+  pcall(require, "snippets.postfix")
+end
+
 require("mason").setup({
   registries = {
     "github:mason-org/mason-registry",
@@ -65,3 +71,4 @@ require("mason").setup({
 })
 
 require("config.colors")
+require("config.racket")

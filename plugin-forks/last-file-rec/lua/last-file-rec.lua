@@ -49,8 +49,10 @@ function M.setup()
       last_checked_cwd = cwd
       for _, file in ipairs(frontend_indicators) do
         if vim.fn.filereadable(cwd .. "/" .. file) == 1 or vim.fn.isdirectory(cwd .. "/" .. file) == 1 then
-          vim.notify("Frontend project detected, setting gruvbox colorscheme", vim.log.levels.INFO)
-          vim.cmd("colorscheme gruvbox")
+          vim.notify("Frontend project detected, setting catpuccin colorscheme", vim.log.levels.INFO)
+          vim.schedule(function()
+            vim.cmd("colorscheme catppuccin-frappe")
+          end)
           break
         end
       end
