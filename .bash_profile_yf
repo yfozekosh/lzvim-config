@@ -286,6 +286,13 @@ if [[ -n "${BASH_VERSION-}" ]]; then
       node_name=
     fi
     PROMPT_COMMAND='PS1="(>_>)${node_name} ${PS1_GREEN}${PS1_BOLD}${PS1_MAGENTA}$(__git_prompt_info)${PS1_YELLOW}$(__short_path_under_project)${PS1_GREEN}${PS1_BOLD}${PS1_RESET}\n\$ "'
+
+    # If no internet connection - echo in red caps that there is no internet connection and vpn should be disabled
+    # timeout for ping - 3 sec
+    if ! ping -c 1 -W 3 google.com &>/dev/null; then
+      echo ""
+      echo -e "${PS1_RED}${PS1_BOLD}NO INTERNET CONNECTION - DISABLE VPN${PS1_RESET}"
+    fi
   fi
 fi
 
