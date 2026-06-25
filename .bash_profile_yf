@@ -321,6 +321,105 @@ ask() {
   ~/.config/nvim/app-forks/spinner.sh --cmd-name "ask" bash -c "copilot -s --model gpt-4.1 -p \"You are command line assistant that answers questions. Do not perform any actions and do not use tools. If you see imperative prompt like 'write ...' it means that you need to output script but not execute it. User prompt: $prompt\" | bat -l md"
 }
 
+codo() {
+  local new=0
+
+  if [[ "${1:-}" == "--new" ]]; then
+    new=1
+    shift
+  fi
+
+  local prompt="$*"
+  local root="$PWD"
+  local session_dir="$root/.codo"
+  local session_file="$session_dir/session.md"
+  local spinner="$HOME/.config/nvim/app-forks/spinner.sh"
+  local model="${CODO_MODEL:-claude-sonnet-4.6}"
+  local max_history_bytes="${CODO_HISTORY_BYTES:-60000}"
+
+  mkdir -p "$session_dir" || return 1
+
+  # Avoid accidentally committing local chat history.
+  if [[ ! -f "$session_dir/.gitignore" ]]; then
+    printf '%s\n' '*' '!.gitignore' > "$session_dir/.gitignore"
+  fi
+
+  if (( new )); then
+    : > "$session_file" || return 1
+  elif [[ ! -f "$session_file" ]]; then
+    : > "$session_file" || return 1
+  fi
+
+  if [[ -z "$prompt" ]]; then
+    if (( new )); then
+      echo "Started new codo session: $session_file"
+      return 0
+    fi
+
+    echo "usage: codo [--new] <prompt>" >&2
+    echo "session: $session_file" >&2
+    return 2
+  fi
+
+  if [[ ! -x "$spinner" ]]; then
+    echo "codo: spinner not found or not executable: $spinner" >&2
+    return 1
+  fi
+
+  local prompt_file out_file status
+  prompt_file="$(mktemp "${TMPDIR:-/tmp}/codo-prompt.XXXXXX")" || return 1
+  out_file="$(mktemp "${TMPDIR:-/tmp}/codo-out.XXXXXX")" || {
+    rm -f "$prompt_file"
+    return 1
+  }
+
+  {
+    cat <<'EOF'
+You are a command line assistant that does what is asked.
+Use tools, especially bash.
+Continue the conversation using the per-folder transcript below.
+Do not repeat the whole transcript back; answer only the latest user prompt.
+
+EOF
+
+    printf 'Folder: %s\n' "$root"
+    printf 'Transcript file: %s\n\n' "$session_file"
+
+    printf '%s\n' '--- Conversation so far ---'
+    tail -c "$max_history_bytes" "$session_file" 2>/dev/null || true
+
+    printf '\n%s\n' '--- Latest user prompt ---'
+    printf '%s\n' "$prompt"
+  } > "$prompt_file"
+
+  CODO_MODEL="$model" \
+  CODO_PROMPT_FILE="$prompt_file" \
+  CODO_OUT_FILE="$out_file" \
+    "$spinner" --cmd-name "ask" bash -c '
+      set -o pipefail
+      copilot -s --model "$CODO_MODEL" -p "$(cat "$CODO_PROMPT_FILE")" |
+        tee "$CODO_OUT_FILE" |
+        bat -l md
+    '
+
+  status=$?
+
+  if (( status == 0 )); then
+    {
+      printf '\n\n---\n\n'
+      printf '## User\n\n%s\n\n' "$prompt"
+      printf '## Assistant\n\n'
+      cat "$out_file"
+      printf '\n'
+    } >> "$session_file"
+  else
+    echo "codo: copilot failed with status $status; session not updated" >&2
+  fi
+
+  rm -f "$prompt_file" "$out_file"
+  return "$status"
+}
+
 update_dockge() {
   stacks=$(docker compose ls --format json | jq .[].ConfigFiles -r | grep -o "^/opt/.*/")
   for i in $stacks; do

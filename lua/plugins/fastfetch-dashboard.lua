@@ -1,20 +1,26 @@
 local function get_fastfetch(isLogo)
   isLogo = isLogo or false
   local shCommand = "fastfetch --pipe --disable-linewrap --no-buffer" .. (isLogo and "" or " --logo-type none")
-  local handle = io.popen(shCommand)
-  if not handle then
-    return "fastfetch not available"
+  local function runSh(command)
+    local handle = io.popen(command)
+    if not handle then
+      return "fastfetch not available"
+    end
+
+    local result = handle:read("*a")
+    handle:close()
+    if not result then
+      return "fastfetch failed"
+    end
+    return result
   end
 
-  local result = handle:read("*a")
-  handle:close()
-  if not result then
-    return "fastfetch failed"
-  end
-
+  result = runSh(shCommand)
   -- More aggressive cleanup
   result = result:gsub("\27%[[%d;]*[ABCDEFGHJKSTfmnsulh]", "") -- Remove all ANSI sequences
   result = result:gsub("[\128-\255]", "") -- Remove all non-ASCII characters
+
+  local nvimVersion = runSh("nvim -v")
 
   local maxWidth = 51
   local cropped_lines = {}
@@ -29,7 +35,9 @@ local function get_fastfetch(isLogo)
       line = line .. string.rep(" ", maxWidth - #line)
     end
     if i == 1 then
-      line = "  ! Welcome back to NEOVIM !"
+      line = "  ! Welcome back to NEOVIM"
+      line = line .. (" " .. (nvimVersion:match("NVIM v(%d+%.%d+%.%d+)") or ""))
+      line = line .. " !"
     end
     if i == 2 then
       line = ""

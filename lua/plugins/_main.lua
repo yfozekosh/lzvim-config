@@ -9,8 +9,8 @@ return {
   -- add gruvbox
   { "ellisonleao/gruvbox.nvim" },
   { "nvim-mini/mini.animate", enabled = false },
-  { "Mofiqul/vscode.nvim", enabled = true },
-  { "johngrib/vim-game-snake" },
+  -- { "Mofiqul/vscode.nvim", enabled = true },
+  -- { "johngrib/vim-game-snake" },
   {"alec-gibson/nvim-tetris"},
   {"shaunsingh/nord.nvim"},
 

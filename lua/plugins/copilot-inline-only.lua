@@ -1,7 +1,7 @@
 -- Copilot only inline, not in cmp completion list
 return {
-  {
-    "zbirenbaum/copilot-cmp",
-    enabled = false,
-  },
+-- {
+--   "zbirenbaum/copilot-cmp"c>
+--   enabled = false,
+-- },
 }

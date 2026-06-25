@@ -50,6 +50,18 @@ install_packages() {
 }
 run_migration "install_packages" install_packages
 
+install_cmake() {
+  if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
+    sudo apt install -y cmake
+  elif [[ "$DISTRO" == "fedora" ]]; then
+    sudo dnf install -y cmake --skip-unavailable
+  else
+    echo "Unsupported distro: $DISTRO"
+    exit 1
+  fi
+}
+run_migration "install_cmake" install_cmake
+
 # Migration 2: Install TPM
 install_tpm() {
   git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm" || true

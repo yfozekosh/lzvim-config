@@ -1,6 +1,6 @@
 return {
     dir = "~/.config/nvim/plugin-forks/dotbee/",
-    enabled = true,
+    enabled = false,
     name="dotbee.nvim",
     build = function()
       -- Install tries to automatically detect the install method.

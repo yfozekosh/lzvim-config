@@ -18,7 +18,7 @@ return {
   },
   {
     dir = "~/.config/nvim/plugin-forks/nvim-dbee/",
-    enabled = true,
+    enabled = false,
     name="yf-dbee.nvim",
     build = function()
       -- Install tries to automatically detect the install method.
