@@ -79,6 +79,14 @@ link_configs() {
 }
 run_migration "link_configs" link_configs
 
+# Migration 3.1: Install tmux plugins (tmux-sensible, tmux-which-key, etc.)
+# via TPM's non-interactive installer. Needs ~/.tmux.conf symlinked (done by
+# link_configs above) but does NOT need a running tmux server.
+install_tmux_plugins() {
+  "$HOME/.tmux/plugins/tpm/scripts/install_plugins.sh"
+}
+run_migration "install_tmux_plugins" install_tmux_plugins
+
 # Migration 4: Source bash_profile_yf in .bashrc
 ensure_bashrc_source() {
   local line='source ~/.bash_profile_yf'
@@ -119,6 +127,27 @@ install_dotnet() {
     ~/dotnet-install.sh
 }
 run_migration "install_dotnet" install_dotnet
+
+# Migration: install Node.js + npm (needed for the Copilot CLI and the
+# Copilot usage scraper migration below)
+install_nodejs() {
+  if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
+    sudo apt update
+    sudo apt install -y nodejs npm
+  elif [[ "$DISTRO" == "fedora" ]]; then
+    sudo dnf install -y nodejs npm
+  else
+    echo "Unsupported distro: $DISTRO"
+    exit 1
+  fi
+}
+run_migration "install_nodejs" install_nodejs
+
+# Migration: install the GitHub Copilot CLI (this tool)
+install_copilot_cli() {
+  sudo npm install -g @github/copilot
+}
+run_migration "install_copilot_cli" install_copilot_cli
 
 # Migration: install GitHub CLI (gh)
 install_gh_cli() {
