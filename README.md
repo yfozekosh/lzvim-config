@@ -42,6 +42,31 @@ cd plugin-forks/nvim-dbee
 
 **Note:** This script must be run manually. It builds the Windows executable and places it in `/mnt/c/__Projects/dbee.exe`.
 
+## Committing & pushing
+
+Commits use the local git identity `yfozekosh <yfozekosh@gmail.com>` (matches
+the existing repo history; set via `git config user.name`/`user.email` in
+this repo, not `--global`).
+
+Pushing is done via a throwaway Docker container using the deploy key stored
+at `~/github_deploy_key` (NOT `~/.ssh`) - the host's SSH agent/`~/.ssh` keys
+are never used for this repo:
+
+```bash
+docker run --rm --entrypoint sh \
+  -v /home/yfozekosh/.config/nvim:/repo \
+  -v /home/yfozekosh/github_deploy_key:/tmp/deploy_key:ro \
+  -w /repo \
+  alpine/git \
+  -c "git config --global --add safe.directory /repo && \
+      cp /tmp/deploy_key /tmp/key && chmod 600 /tmp/key && \
+      GIT_SSH_COMMAND='ssh -i /tmp/key -o StrictHostKeyChecking=accept-new' \
+      git push git@github.com:yfozekosh/lzvim-config.git HEAD:main"
+```
+
+After pushing, run `git fetch origin main` on the host to refresh the local
+`origin/main` tracking ref (the container push doesn't update it).
+
 ## Description
 
 This is a personalized Neovim configuration based on [LazyVim](https://github.com/LazyVim/LazyVim), a modern Neovim starter template. It is tailored for .NET development, with plugins and settings optimized for C# and related workflows. It uses lazy.nvim as the plugin manager and includes custom configurations for an enhanced development experience.
