@@ -40,9 +40,9 @@ run_migration() {
 install_packages() {
   if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
     sudo apt update
-    sudo apt install -y tmux git gcc build-essential neovim bat
+    sudo apt install -y tmux git gcc build-essential neovim bat wget curl
   elif [[ "$DISTRO" == "fedora" ]]; then
-    sudo dnf install -y tmux git gcc @development-tools neovim bat --skip-unavailable
+    sudo dnf install -y tmux git gcc @development-tools neovim bat wget curl --skip-unavailable
   else
     echo "Unsupported distro: $DISTRO"
     exit 1
