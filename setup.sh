@@ -80,10 +80,27 @@ link_configs() {
 run_migration "link_configs" link_configs
 
 # Migration 3.1: Install tmux plugins (tmux-sensible, tmux-which-key, etc.)
-# via TPM's non-interactive installer. Needs ~/.tmux.conf symlinked (done by
-# link_configs above) but does NOT need a running tmux server.
+# via TPM's non-interactive installer. TPM resolves its plugin directory via
+# the TMUX_PLUGIN_MANAGER_PATH tmux global environment variable, which is
+# normally only set the first time tmux.conf's `run '~/.tmux/plugins/tpm/tpm'`
+# line executes inside a live session - which never happens on a brand-new
+# machine before the first manual tmux launch. Ensure a tmux server is
+# running (tmux's default `exit-empty on` kills a server started with no
+# session, so use a throwaway detached session rather than bare
+# `start-server`) and set the variable explicitly so the installer works
+# standalone. If a server is already running (e.g. re-running setup.sh on an
+# already-configured machine), leave it untouched.
 install_tmux_plugins() {
+  local started_temp_session=0
+  if ! tmux info &>/dev/null; then
+    tmux new-session -d -s __tpm_setup__
+    started_temp_session=1
+  fi
+  tmux set-environment -g TMUX_PLUGIN_MANAGER_PATH "$HOME/.tmux/plugins/"
   "$HOME/.tmux/plugins/tpm/scripts/install_plugins.sh"
+  if [ "$started_temp_session" -eq 1 ]; then
+    tmux kill-session -t __tpm_setup__ 2>/dev/null || true
+  fi
 }
 run_migration "install_tmux_plugins" install_tmux_plugins
 
