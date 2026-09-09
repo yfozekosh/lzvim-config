@@ -155,6 +155,37 @@ install_win32yank() {
 }
 run_migration "install_win32yank" install_win32yank
 
+# Migration: persist the WSLInterop binfmt_misc registration across reboots
+# (WSL only). Fedora's WSL image ships with systemd=true by default, and
+# systemd's own systemd-binfmt.service only knows about formats declared in
+# /etc|/usr/lib/binfmt.d - not WSL's own private WSLInterop registration -
+# so it can end up clearing it during boot. Without it, ANY .exe (win32yank,
+# clip.exe, powershell.exe, etc.) fails with "cannot execute binary file:
+# Exec format error". WSL's [boot] command= option runs as root at every
+# boot (no systemd unit needed), so use that to re-register it every time.
+fix_wsl_interop_persistence() {
+  if ! grep -qi microsoft /proc/version 2>/dev/null; then
+    echo "Not running under WSL - skipping WSLInterop persistence fix."
+    return
+  fi
+  local conf=/etc/wsl.conf
+  sudo touch "$conf"
+  local cmd_line='command="echo '"'"':WSLInterop:M::MZ::/init:PF'"'"' > /proc/sys/fs/binfmt_misc/register 2>/dev/null || true"'
+  if sudo grep -qF 'WSLInterop:M::MZ::/init' "$conf" 2>/dev/null; then
+    echo "wsl.conf already has the WSLInterop boot command, skipping."
+    return
+  fi
+  if sudo grep -q '^\[boot\]' "$conf" 2>/dev/null; then
+    sudo awk -v line="$cmd_line" '{print} /^\[boot\]/ && !done {print line; done=1}' "$conf" | sudo tee "$conf.tmp" > /dev/null
+    sudo mv "$conf.tmp" "$conf"
+  else
+    printf '\n[boot]\n%s\n' "$cmd_line" | sudo tee -a "$conf" > /dev/null
+  fi
+  # Also apply immediately so the current boot doesn't need a restart.
+  sudo bash -c "echo ':WSLInterop:M::MZ::/init:PF' > /proc/sys/fs/binfmt_misc/register" 2>/dev/null || true
+}
+run_migration "fix_wsl_interop_persistence" fix_wsl_interop_persistence
+
 #Migration 4.1
 install_build_essentials() {
   sudo dnf install -y gcc-c++ cmake

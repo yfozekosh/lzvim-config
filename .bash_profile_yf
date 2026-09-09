@@ -490,6 +490,27 @@ gh-cookie-unsetpass() {
   echo "Removed saved password."
 }
 
+# The Copilot CLI's own click-to-copy writes the clipboard via an OSC 52
+# escape sequence, and (like nvim/tmux) falls back to it whenever its
+# preferred native paths (clip.exe via cmd.exe, in our case) fail. But when
+# it detects it's running inside tmux ($TMUX set), it wraps that OSC 52
+# sequence in tmux's raw passthrough format (`\ePtmux;...\e\\`), which tells
+# tmux to relay it untouched straight to the real outer terminal instead of
+# letting tmux's own `set-clipboard on` + `pane-set-clipboard` hook (see
+# .tmux.conf) intercept and pipe it to win32yank.exe. That raw relay then
+# hits Alacritty's WSL conpty layer, where OSC 52 clipboard writes are
+# silently dropped (a known, unfixable-from-here Windows/conpty limitation).
+# Unsetting $TMUX just for this one process makes it think it's not in tmux,
+# so it emits the plain (unwrapped) OSC 52 sequence instead - which tmux
+# *does* intercept correctly, routing it through win32yank.exe to the real
+# Windows clipboard. $TERM stays "screen-256color" (doesn't start with
+# "tmux"), so tmux's own terminal-capability detection for the pane is
+# unaffected; this only changes Copilot's own tmux-detection.
+copilot() (
+  unset TMUX
+  command copilot "$@"
+)
+
 alias l="ls -l"
 alias la="ls -l -a"
 alias explorer="explorer.exe"

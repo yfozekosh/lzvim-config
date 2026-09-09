@@ -98,6 +98,7 @@ machine.
 | `install_lazygit` | Installs `lazygit` (Fedora via the `atim/lazygit` copr repo; other distros get a warning with manual install instructions) |
 | `install_blesh` | Builds and installs [ble.sh](https://github.com/akinomyoga/ble.sh) (Bash Line Editor - fish/zsh-like syntax highlighting, autosuggestions, vim-mode editing for bash) from git source, sources it from `~/.bashrc` |
 | `install_win32yank` | WSL only: installs [`win32yank.exe`](https://github.com/equalsraf/win32yank) to `~/.local/bin` so tmux and nvim can read/write the real Windows clipboard (see "Shared clipboard" section below) |
+| `fix_wsl_interop_persistence` | WSL only: adds a `[boot] command=` line to `/etc/wsl.conf` that re-registers the `WSLInterop` binfmt_misc entry on every boot. Fedora's WSL image ships with `systemd=true`, and systemd's own binfmt handling can wipe out WSL's private `WSLInterop` registration during boot, breaking every `.exe` call (`win32yank.exe`, `clip.exe`, `powershell.exe`, ...) with "cannot execute binary file". Also applies the fix immediately so the current boot doesn't need a restart. |
 
 See `AGENTS.md` for the convention to follow when adding a new migration
 (every migration must be documented here).
@@ -138,9 +139,29 @@ clipboard:
 
 Since Alacritty is already a native Windows app, its own mouse-selection
 copy/paste already uses the Windows clipboard directly - no extra config
-needed there. After all three pieces are in place, copying in any of the
-three apps and pasting in any other (including into Windows applications)
-should just work.
+needed there.
+
+**OSC 52 (apps like the Copilot CLI's own click-to-copy):** some tools
+write to the clipboard via an OSC 52 escape sequence instead of tmux's
+copy-command path. Relaying that straight through Alacritty doesn't work on
+WSL - OSC 52 gets silently dropped somewhere in the WSL&lt;-&gt;Windows conpty
+layer that Alacritty's `wsl.exe` integration goes through (a known,
+unfixable-from-here Windows limitation; `windows/alacritty.toml` still sets
+`terminal.osc52 = "CopyPaste"` since it's correct/harmless, it just doesn't
+help here). Instead, `.tmux.conf` sets `set-clipboard on` plus a
+`pane-set-clipboard` hook that pipes any OSC 52 write tmux sees straight
+into `win32yank.exe`, bypassing Alacritty's relay entirely. This only
+catches *plain* OSC 52 sequences though - if the writing app detects it's
+inside tmux (`$TMUX` set) it may instead wrap the sequence in tmux's raw
+passthrough format (`\ePtmux;...\e\\`), which tells tmux to relay it
+untouched to the outer terminal, skipping tmux's own interception and
+hitting the same dead end. The Copilot CLI does this, so `.bash_profile_yf`
+defines a `copilot() (...)` wrapper function that unsets `$TMUX` just for
+that one process, making it emit the plain (non-wrapped) form instead.
+
+After all pieces are in place, copying in any of the apps (nvim, tmux
+mouse-drag/copy-mode, Copilot CLI's click-to-copy) and pasting in any other
+(including into Windows applications) should just work.
 
 ## Windows setup (Alacritty + Nerd Font)
 

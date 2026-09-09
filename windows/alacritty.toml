@@ -2,6 +2,14 @@
 program = "wsl.exe"
 args = ["--cd", "~"]
 
+# Allow apps inside the terminal (nvim, tmux, the Copilot CLI's own
+# click-to-copy, etc.) to write to the real Windows clipboard via OSC 52
+# escape sequences. Needed on top of tmux's `set-clipboard external` and the
+# win32yank.exe bridge - some tools (like Copilot CLI's own copy-on-click)
+# use OSC 52 directly instead of relying on tmux copy-mode/copy-command.
+[terminal]
+osc52 = "CopyPaste"
+
 [font]
 size = 12
 
