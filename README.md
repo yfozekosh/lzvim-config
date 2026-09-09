@@ -20,7 +20,7 @@
    ./setup.sh
    ```
    
-   This will install required packages (tmux, git, gcc, neovim, bat), set up tmux plugin manager, symlink configs, and build tmux-mem-cpu-load.
+   This will install required packages (tmux, git, gcc, neovim, bat), set up tmux plugin manager, symlink configs, and build tmux-mem-cpu-load. It also symlinks `copilot-instructions.md` to `~/.copilot/copilot-instructions.md` (global GitHub Copilot CLI instructions, applied across all repos/sessions).
 
 4. Start Neovim:
 

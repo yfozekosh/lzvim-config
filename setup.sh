@@ -74,6 +74,8 @@ link_configs() {
   ln -sf "$PWD/.bash_profile_yf" "$HOME/.bash_profile_yf"
   mkdir -p "$HOME/.tmux"
   ln -sf "$PWD/tmux-scripts" "$HOME/.tmux/scripts"
+  mkdir -p "$HOME/.copilot"
+  ln -sf "$PWD/copilot-instructions.md" "$HOME/.copilot/copilot-instructions.md"
 }
 run_migration "link_configs" link_configs
 
