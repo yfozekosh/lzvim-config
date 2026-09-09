@@ -296,5 +296,16 @@ install_lazygit() {
 }
 run_migration "install_lazygit" install_lazygit
 
+# Migration: pre-install all nvim plugins (lazy.nvim), treesitter parsers,
+# and Mason-managed LSP servers/tools headlessly, so the first interactive
+# `nvim` launch on a fresh machine doesn't have to wait for/babysit
+# installs. Requires nvim (install_packages) and $PWD to already be the
+# nvim config directory (~/.config/nvim), since this repo IS that config -
+# no separate symlink step is needed.
+bootstrap_nvim_plugins() {
+  nvim --headless -c "luafile $PWD/scripts/headless_bootstrap.lua"
+}
+run_migration "bootstrap_nvim_plugins" bootstrap_nvim_plugins
+
 echo "Setup complete."
 bat ~/.yf_setup_migrationlog

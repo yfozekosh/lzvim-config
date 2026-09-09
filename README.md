@@ -117,6 +117,7 @@ machine.
 | `install_blesh` | Builds and installs [ble.sh](https://github.com/akinomyoga/ble.sh) (Bash Line Editor - fish/zsh-like syntax highlighting, autosuggestions, vim-mode editing for bash) from git source, sources it from `~/.bashrc` |
 | `install_win32yank` | WSL only: installs [`win32yank.exe`](https://github.com/equalsraf/win32yank) to `~/.local/bin` so tmux and nvim can read/write the real Windows clipboard (see "Shared clipboard" section below) |
 | `fix_wsl_interop_persistence` | WSL only: adds a `[boot] command=` line to `/etc/wsl.conf` that re-registers the `WSLInterop` binfmt_misc entry on every boot. Fedora's WSL image ships with `systemd=true`, and systemd's own binfmt handling can wipe out WSL's private `WSLInterop` registration during boot, breaking every `.exe` call (`win32yank.exe`, `clip.exe`, `powershell.exe`, ...) with "cannot execute binary file". Also applies the fix immediately so the current boot doesn't need a restart. |
+| `bootstrap_nvim_plugins` | Runs `nvim --headless -c "luafile scripts/headless_bootstrap.lua"` to install every lazy.nvim plugin, treesitter parser, and Mason-managed LSP server/tool up front (using lazy.nvim's `sync({ wait = true })` API so it actually blocks until done), so the first interactive `nvim` launch is instant instead of installing plugins in the background |
 
 See `AGENTS.md` for the convention to follow when adding a new migration
 (every migration must be documented here).
