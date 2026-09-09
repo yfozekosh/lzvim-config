@@ -85,7 +85,7 @@ machine.
 | `install_packages` | Installs `tmux`, `git`, `gcc`, `neovim`, `bat` (+ build tools on Fedora) |
 | `install_cmake` | Installs `cmake` |
 | `install_tpm` | Clones the Tmux Plugin Manager (TPM) to `~/.tmux/plugins/tpm` |
-| `link_configs` | Symlinks `.tmux.conf`, `.bash_profile_yf`, `tmux-scripts/` (as `~/.tmux/scripts`), and `copilot-instructions.md` (as `~/.copilot/copilot-instructions.md`) into place |
+| `link_configs` | Symlinks `.tmux.conf`, `.bash_profile_yf`, `.blerc` (ble.sh color/behavior tweaks), `tmux-scripts/` (as `~/.tmux/scripts`), and `copilot-instructions.md` (as `~/.copilot/copilot-instructions.md`) into place |
 | `install_tmux_plugins` | Starts a throwaway tmux server/session if none is running, sets `TMUX_PLUGIN_MANAGER_PATH` explicitly, then runs TPM's non-interactive installer so tmux plugins (`tmux-sensible`, `tmux-which-key`) are installed without needing to press `prefix+I` (works standalone even before tmux.conf has ever been loaded by a live session) |
 | `bashrc_source` | Adds `source ~/.bash_profile_yf` to `~/.bashrc` |
 | `install_build_essentials` | Installs `gcc-c++`, `cmake`, `vim`, `fastfetch`, `awk`, `bat` |

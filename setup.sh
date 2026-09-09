@@ -76,6 +76,7 @@ link_configs() {
   ln -sf "$PWD/tmux-scripts" "$HOME/.tmux/scripts"
   mkdir -p "$HOME/.copilot"
   ln -sf "$PWD/copilot-instructions.md" "$HOME/.copilot/copilot-instructions.md"
+  ln -sf "$PWD/.blerc" "$HOME/.blerc"
 }
 run_migration "link_configs" link_configs
 

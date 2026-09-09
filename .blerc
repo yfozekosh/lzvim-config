@@ -1,0 +1,19 @@
+# ble.sh user config (~/.blerc), symlinked by setup.sh's link_configs.
+#
+# Tone down the default completion/autosuggestion faces, which use bright,
+# high-contrast backgrounds (near-white auto_complete background, fully
+# inverted menu selection) - more like PowerShell's muted, low-contrast
+# ghost-text and selection highlighting.
+
+# Inline autosuggestion ("ghost text"): default is bg=254 (near-white) which
+# stands out as a bright block. Use a plain dim foreground instead, no
+# background, so it just looks like grayed-out text (fish/PowerShell style).
+ble-face auto_complete=fg=244
+
+# Tab-triggered completion menu: default menu_complete_selected is "reverse"
+# (full invert, very high contrast). Use a subtle dark-gray highlight instead.
+ble-face menu_complete_selected=fg=253,bg=238
+
+# Completion menu filter/search input: default is fg=16,bg=229 (black text on
+# bright yellow). Match the muted selection highlight above instead.
+ble-face menu_filter_input=fg=253,bg=238
