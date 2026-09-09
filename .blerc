@@ -25,3 +25,24 @@ ble-face menu_filter_input=fg=253,bg=238
 # trigger that selection-cycling ("menu-complete") mode, unaffected by
 # this option, so it's still available on demand.
 bleopt complete_menu_complete=
+
+# Live syntax highlighting while a command is still being typed / invalid:
+# these all default to solid, high-contrast background blocks. Switch them
+# to plain colored (and underlined, for real errors) foreground text instead
+# - still clearly distinguishable, without the bright block backgrounds.
+
+# Command word while it doesn't (yet) match anything on PATH - e.g. still
+# mid-typing, or a typo. Default: bg=124 (dark red block), fg=231 (white).
+ble-face command_suffix_new=fg=203,underline
+
+# Command word once it does match something valid. Default: bg=28 (green
+# block), fg=231 (white).
+ble-face command_suffix=fg=34
+
+# Real syntax errors (unmatched quote/paren, etc). Default: bg=203 (bright
+# pink-red block), fg=231 (white).
+ble-face syntax_error=fg=203,underline
+
+# Invalid/unrecognized argument. Default: bg=225 (pale yellow block),
+# fg=black.
+ble-face argument_error=fg=221,underline
