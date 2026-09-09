@@ -96,6 +96,7 @@ machine.
 | `install_gh_cli` | Installs the GitHub CLI (`gh`) from the official apt/dnf repo |
 | `install_copilot_usage_scraper` | Installs npm deps + Playwright Chromium + OS runtime libs for the tmux Copilot AI-credit usage widget (`tmux-scripts/copilot-usage-scraper/`) |
 | `install_lazygit` | Installs `lazygit` (Fedora via the `atim/lazygit` copr repo; other distros get a warning with manual install instructions) |
+| `install_blesh` | Builds and installs [ble.sh](https://github.com/akinomyoga/ble.sh) (Bash Line Editor - fish/zsh-like syntax highlighting, autosuggestions, vim-mode editing for bash) from git source, sources it from `~/.bashrc` |
 
 See `AGENTS.md` for the convention to follow when adding a new migration
 (every migration must be documented here).

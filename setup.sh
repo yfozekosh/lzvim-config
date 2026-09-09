@@ -40,9 +40,9 @@ run_migration() {
 install_packages() {
   if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
     sudo apt update
-    sudo apt install -y tmux git gcc build-essential neovim bat wget curl
+    sudo apt install -y tmux git gcc build-essential neovim bat wget curl xz-utils gawk
   elif [[ "$DISTRO" == "fedora" ]]; then
-    sudo dnf install -y tmux git gcc @development-tools neovim bat wget curl --skip-unavailable
+    sudo dnf install -y tmux git gcc @development-tools neovim bat wget curl xz gawk --skip-unavailable
   else
     echo "Unsupported distro: $DISTRO"
     exit 1
@@ -110,6 +110,29 @@ ensure_bashrc_source() {
   grep -qxF "$line" "$HOME/.bashrc" || echo "$line" >> "$HOME/.bashrc"
 }
 run_migration "bashrc_source" ensure_bashrc_source
+
+# Migration: install ble.sh (Bash Line Editor) - fish/zsh-like syntax
+# highlighting, autosuggestions and vim-mode command line editing for bash.
+# Built from the latest git source (rather than the "nightly" release
+# tarball) because the nightly tarball hit a Bash 5.3 arithmetic-expansion
+# incompatibility (bash 5.3 is stricter about `path[d]`-style array
+# subscripts) that the git master already has fixed. Installs to
+# ~/.local/share/blesh and sources it from .bashrc.
+install_blesh() {
+  local blesh_dir="$HOME/.local/share/blesh"
+  if [ ! -f "$blesh_dir/ble.sh" ]; then
+    local tmp_dir
+    tmp_dir=$(mktemp -d)
+    git clone --recursive --depth 1 --shallow-submodules https://github.com/akinomyoga/ble.sh.git "$tmp_dir/ble.sh"
+    make -C "$tmp_dir/ble.sh"
+    make -C "$tmp_dir/ble.sh" install PREFIX="$HOME/.local"
+    rm -rf "$tmp_dir"
+  fi
+
+  local line='source -- ~/.local/share/blesh/ble.sh'
+  grep -qxF "$line" "$HOME/.bashrc" || echo "$line" >> "$HOME/.bashrc"
+}
+run_migration "install_blesh" install_blesh
 
 #Migration 4.1
 install_build_essentials() {
