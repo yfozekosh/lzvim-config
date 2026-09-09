@@ -23,15 +23,6 @@ and runs `setup.sh`:
 sudo dnf install -y git && git clone https://github.com/yfozekosh/lzvim-config.git ~/.config/nvim && cd ~/.config/nvim && bash setup.sh
 ```
 
-If you'd rather review `setup.sh` before running it (recommended on a
-machine you don't fully trust), curl it down first and read it:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/yfozekosh/lzvim-config/main/setup.sh -o /tmp/setup.sh && less /tmp/setup.sh
-```
-
-then run the one-liner above once you're happy with it.
-
 If you already have `~/.config/nvim` populated (e.g. a previous config),
 back it up first - see the manual steps below.
 
