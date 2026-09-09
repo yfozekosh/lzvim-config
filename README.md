@@ -42,6 +42,23 @@ cd plugin-forks/nvim-dbee
 
 **Note:** This script must be run manually. It builds the Windows executable and places it in `/mnt/c/__Projects/dbee.exe`.
 
+## Windows setup (Alacritty + Nerd Font)
+
+`windows/alacritty.toml` is the tracked source of truth for the Alacritty
+config. `windows/setup.ps1` is run from a **native Windows PowerShell**
+(not inside WSL) and:
+
+- Installs Alacritty via `winget` (skips if already installed)
+- Installs JetBrainsMono Nerd Font via `winget` (skips if already installed)
+- Links `%APPDATA%\alacritty\alacritty.toml` to the repo's copy via
+  `\\wsl.localhost\<distro>\...` (real symlink if Developer Mode/admin is
+  available, otherwise falls back to a one-time copy - re-run the script
+  after editing the repo config to re-sync in that case)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File \\wsl.localhost\<distro>\home\<user>\.config\nvim\windows\setup.ps1
+```
+
 ## Committing & pushing
 
 Commits use the local git identity `yfozekosh <yfozekosh@gmail.com>` (matches
