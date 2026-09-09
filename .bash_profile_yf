@@ -2,6 +2,14 @@
 
 # .bashrc
 #
+# ---- default to $HOME ----
+# WSL sometimes opens with an initial working directory under /mnt/c/...
+# (e.g. running `wsl` from a Windows Terminal/PowerShell tab already sitting
+# in a Windows folder). Always jump back to the Linux home directory instead.
+if [ -n "$PS1" ] && [[ "$PWD" == /mnt/* ]]; then
+  cd "$HOME" || true
+fi
+
 # ---- auto tmux ----
 # New interactive shell (e.g. Alacritty -> WSL): if no tmux session is
 # currently attached anywhere (ignores stray detached/orphan sessions left
