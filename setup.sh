@@ -161,5 +161,17 @@ install_copilot_usage_scraper() {
 }
 run_migration "install_copilot_usage_scraper" install_copilot_usage_scraper
 
+# Migration: install lazygit (Fedora via copr; other distros unsupported here)
+install_lazygit() {
+  if [[ "$DISTRO" == "fedora" ]]; then
+    sudo dnf copr enable -y atim/lazygit
+    sudo dnf install -y lazygit
+  else
+    echo "WARNING: install_lazygit migration only supports Fedora (copr atim/lazygit)." >&2
+    echo "WARNING: install lazygit manually for distro '$DISTRO': https://github.com/jesseduffield/lazygit#installation" >&2
+  fi
+}
+run_migration "install_lazygit" install_lazygit
+
 echo "Setup complete."
 bat ~/.yf_setup_migrationlog
