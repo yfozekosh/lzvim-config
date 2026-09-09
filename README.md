@@ -26,7 +26,8 @@
    ./setup.sh
    ```
    
-   This will install required packages (tmux, git, gcc, neovim, bat), set up tmux plugin manager, symlink configs, and build tmux-mem-cpu-load. It also symlinks `copilot-instructions.md` to `~/.copilot/copilot-instructions.md` (global GitHub Copilot CLI instructions, applied across all repos/sessions).
+   See [`setup.sh` details](#setupsh-details) below for how it works and the
+   full list of migrations it runs.
 
 4. Start Neovim:
 
@@ -34,6 +35,47 @@
    nvim
    ```
    Lazy.nvim will automatically install all plugins on first launch.
+
+## `setup.sh` details
+
+`setup.sh` is idempotent and safe to re-run any time (e.g. after pulling
+new changes) - it only applies migrations that haven't run yet on this
+machine.
+
+**How it works:**
+- Each migration is a bash function, registered with
+  `run_migration "<name>" <function>`.
+- Applied migrations are logged to `~/.yf_setup_migrationlog` (one line per
+  migration: name, timestamp, `uname -a`). On the next run, any migration
+  already present in that log is skipped.
+- The target distro (Fedora or Debian/Ubuntu) is auto-detected from
+  `/etc/os-release`; most migrations branch on it, and print a warning
+  (rather than failing the whole run) for unsupported distros where a
+  manual install is needed instead.
+- To force a migration to re-run, delete its line from
+  `~/.yf_setup_migrationlog` (or the whole file to rerun everything).
+
+**Current migrations (in run order):**
+
+| Migration | What it does |
+|---|---|
+| `install_packages` | Installs `tmux`, `git`, `gcc`, `neovim`, `bat` (+ build tools on Fedora) |
+| `install_cmake` | Installs `cmake` |
+| `install_tpm` | Clones the Tmux Plugin Manager (TPM) to `~/.tmux/plugins/tpm` |
+| `link_configs` | Symlinks `.tmux.conf`, `.bash_profile_yf`, `tmux-scripts/` (as `~/.tmux/scripts`), and `copilot-instructions.md` (as `~/.copilot/copilot-instructions.md`) into place |
+| `install_tmux_plugins` | Runs TPM's non-interactive installer so tmux plugins (`tmux-sensible`, `tmux-which-key`) are installed without needing to press `prefix+I` |
+| `bashrc_source` | Adds `source ~/.bash_profile_yf` to `~/.bashrc` |
+| `install_build_essentials` | Installs `gcc-c++`, `cmake`, `vim`, `fastfetch`, `awk`, `bat` |
+| `install_tmux_mem_cpu_load` | Builds and installs `tmux-mem-cpu-load` from `app-forks/tmux-mem-cpu-load` |
+| `install_dotnet` | Installs .NET runtime dependencies and runs the official `dotnet-install.sh` |
+| `install_nodejs` | Installs Node.js + npm (needed by the two migrations below) |
+| `install_copilot_cli` | Installs the GitHub Copilot CLI (`npm install -g @github/copilot`) |
+| `install_gh_cli` | Installs the GitHub CLI (`gh`) from the official apt/dnf repo |
+| `install_copilot_usage_scraper` | Installs npm deps + Playwright Chromium + OS runtime libs for the tmux Copilot AI-credit usage widget (`tmux-scripts/copilot-usage-scraper/`) |
+| `install_lazygit` | Installs `lazygit` (Fedora via the `atim/lazygit` copr repo; other distros get a warning with manual install instructions) |
+
+See `AGENTS.md` for the convention to follow when adding a new migration
+(every migration must be documented here).
 
 ## Building nvim-dbee (for WSL users)
 
