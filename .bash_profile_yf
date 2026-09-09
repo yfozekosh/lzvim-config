@@ -2,6 +2,17 @@
 
 # .bashrc
 #
+# ---- auto tmux ----
+# New interactive shell (e.g. Alacritty -> WSL): if no tmux session exists anywhere
+# and we're not already inside tmux, jump straight into a new tmux session.
+# If a session already exists, leave it alone (attach manually with `tmux attach`)
+# so we don't force-attach onto someone else's active work.
+if command -v tmux &>/dev/null && [ -z "$TMUX" ] && [ -n "$PS1" ]; then
+  if ! tmux list-sessions &>/dev/null; then
+    exec tmux new-session
+  fi
+fi
+
 # ---- paths ----
 export PROJECT_PATH=~/dispute/ # on Git Bash / MSYS
 # export PROJECT_PATH="$HOME/__Projects/dispute" # example for Linux/macOS
@@ -318,7 +329,7 @@ profile() {
 ask() {
   local prompt="$1"
   # Use a fixed command name for consistent averaging across different prompts
-  ~/.config/nvim/app-forks/spinner.sh --cmd-name "ask" bash -c "copilot -s --model gpt-4.1 -p \"You are command line assistant that answers questions. Do not perform any actions and do not use tools. If you see imperative prompt like 'write ...' it means that you need to output script but not execute it. User prompt: $prompt\" | bat -l md"
+  ~/.config/nvim/app-forks/spinner.sh --cmd-name "ask" bash -c "copilot -s --model auto -p \"You are command line assistant that answers questions. Do not perform any actions and do not use tools. If you see imperative prompt like 'write ...' it means that you need to output script but not execute it. User prompt: $prompt\" | bat -l md"
 }
 
 codo() {
@@ -435,6 +446,43 @@ cdn(){
   cd ~/.config/nvim || exit
 }
 
+gh-cookie-clear() {
+  local state_file="$HOME/.config/copilot-usage/state.json"
+  local cache_file="$HOME/.cache/tmux-copilot-usage"
+  local lock_file="$HOME/.cache/tmux-copilot-usage.lock"
+  local login_lock="$HOME/.config/copilot-usage/login.lock"
+  rm -f "$state_file" "$cache_file" "$lock_file" "$login_lock"
+  echo "Cleared saved Copilot usage session ($state_file). Next tmux refresh will trigger re-login."
+}
+
+# Save your GitHub password locally (chmod 600) so re-login auto-fills it.
+# Typed hidden (not echoed), never leaves this machine except to github.com.
+gh-cookie-setpass() {
+  local dir="$HOME/.config/copilot-usage"
+  local pass_file="$dir/password"
+  mkdir -p "$dir"
+  chmod 700 "$dir"
+  local pass
+  read -r -s -p "GitHub password (hidden, stored locally): " pass
+  echo
+  if [ -z "$pass" ]; then
+    echo "Empty password, not saving."
+    return 1
+  fi
+  printf '%s' "$pass" > "$pass_file"
+  chmod 600 "$pass_file"
+  unset pass
+  echo "Saved to $pass_file (chmod 600). Re-login will now auto-fill it; you'll still be asked for 2FA."
+}
+
+gh-cookie-unsetpass() {
+  rm -f "$HOME/.config/copilot-usage/password"
+  echo "Removed saved password."
+}
+
 alias l="ls -l"
 alias la="ls -l -a"
+alias explorer="explorer.exe"
+alias clip="clip.exe"
+alias exp="explorer.exe ."
 export NODE_OPTIONS="--max-old-space-size=16192"

@@ -72,6 +72,8 @@ run_migration "install_tpm" install_tpm
 link_configs() {
   ln -sf "$PWD/.tmux.conf" "$HOME/.tmux.conf"
   ln -sf "$PWD/.bash_profile_yf" "$HOME/.bash_profile_yf"
+  mkdir -p "$HOME/.tmux"
+  ln -sf "$PWD/tmux-scripts" "$HOME/.tmux/scripts"
 }
 run_migration "link_configs" link_configs
 
@@ -81,6 +83,14 @@ ensure_bashrc_source() {
   grep -qxF "$line" "$HOME/.bashrc" || echo "$line" >> "$HOME/.bashrc"
 }
 run_migration "bashrc_source" ensure_bashrc_source
+
+#Migration 4.1
+install_build_essentials() {
+  sudo dnf install -y gcc-c++ cmake
+  sudo dnf install -y vim fastfetch awk bat
+}
+
+run_migration "install_build_essentials" install_build_essentials
 
 # Migration 5: build tmux-mem-cpu-load
 install_tmux_mem_cpu_load() {
@@ -98,6 +108,58 @@ install_tmux_mem_cpu_load() {
   popd
 }
 run_migration "install_tmux_mem_cpu_load" install_tmux_mem_cpu_load
+
+
+install_dotnet() {
+    sudo dnf install -y glibc libgcc ca-certificates openssl-libs libstdc++ libicu tzdata krb5-libs zlib
+    wget https://dot.net/v1/dotnet-install.sh -O ~/dotnet-install.sh
+    chmod +x ~/dotnet-install.sh
+    ~/dotnet-install.sh
+}
+run_migration "install_dotnet" install_dotnet
+
+# Migration: install GitHub CLI (gh)
+install_gh_cli() {
+  if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
+    sudo mkdir -p -m 755 /etc/apt/keyrings
+    out=$(mktemp)
+    wget -nv -O "$out" https://cli.github.com/packages/githubcli-archive-keyring.gpg
+    cat "$out" | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
+    sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages/deb stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+    sudo apt update
+    sudo apt install -y gh
+  elif [[ "$DISTRO" == "fedora" ]]; then
+    sudo dnf install -y 'dnf-command(config-manager)'
+    sudo dnf config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo
+    sudo dnf install -y gh --repo gh-cli
+  else
+    echo "Unsupported distro: $DISTRO"
+    exit 1
+  fi
+}
+run_migration "install_gh_cli" install_gh_cli
+
+# Migration: set up the Copilot AI-credit usage scraper (tmux status bar
+# widget). Installs npm deps + Playwright Chromium + Linux runtime libs
+# Chromium needs. Credentials/session (state.json, password) are never part
+# of the repo - they live in ~/.config/copilot-usage/ and are created by
+# tmux-scripts/copilot-usage-scraper/login.js on first run.
+install_copilot_usage_scraper() {
+  local scraper_dir="$PWD/tmux-scripts/copilot-usage-scraper"
+  (cd "$scraper_dir" && npm install)
+  (cd "$scraper_dir" && npx playwright install chromium)
+  if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
+    (cd "$scraper_dir" && npx playwright install-deps chromium) || true
+  elif [[ "$DISTRO" == "fedora" ]]; then
+    sudo dnf install -y nss nspr atk cups-libs libdrm libxkbcommon at-spi2-atk \
+      libXcomposite libXdamage libXfixes libXrandr mesa-libgbm alsa-lib \
+      pango cairo libxshmfence
+  else
+    echo "Unsupported distro for Playwright deps: $DISTRO (install manually if the browser fails to launch)"
+  fi
+}
+run_migration "install_copilot_usage_scraper" install_copilot_usage_scraper
 
 echo "Setup complete."
 bat ~/.yf_setup_migrationlog
