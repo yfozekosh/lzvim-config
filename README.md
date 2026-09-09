@@ -97,6 +97,7 @@ machine.
 | `install_copilot_usage_scraper` | Installs npm deps + Playwright Chromium + OS runtime libs for the tmux Copilot AI-credit usage widget (`tmux-scripts/copilot-usage-scraper/`) |
 | `install_lazygit` | Installs `lazygit` (Fedora via the `atim/lazygit` copr repo; other distros get a warning with manual install instructions) |
 | `install_blesh` | Builds and installs [ble.sh](https://github.com/akinomyoga/ble.sh) (Bash Line Editor - fish/zsh-like syntax highlighting, autosuggestions, vim-mode editing for bash) from git source, sources it from `~/.bashrc` |
+| `install_win32yank` | WSL only: installs [`win32yank.exe`](https://github.com/equalsraf/win32yank) to `~/.local/bin` so tmux and nvim can read/write the real Windows clipboard (see "Shared clipboard" section below) |
 
 See `AGENTS.md` for the convention to follow when adding a new migration
 (every migration must be documented here).
@@ -113,6 +114,33 @@ cd plugin-forks/nvim-dbee
 ```
 
 **Note:** This script must be run manually. It builds the Windows executable and places it in `/mnt/c/__Projects/dbee.exe`.
+
+## Shared clipboard (Alacritty + tmux + nvim, WSL)
+
+On WSL, Alacritty runs as a native Windows process, but tmux and nvim run
+inside Linux, so a mouse-selection copy or a `y` in nvim only lands in an
+internal Linux buffer (tmux's paste buffer / nvim's default register) unless
+something explicitly bridges it to the real Windows clipboard.
+
+`setup.sh`'s `install_win32yank` migration installs
+[`win32yank.exe`](https://github.com/equalsraf/win32yank) to `~/.local/bin`
+(it runs as a native Windows process via WSL interop, no X server or
+`wl-copy` needed). Two things then use it to read/write the real Windows
+clipboard:
+
+- `.tmux.conf` sets `copy-command` to `win32yank.exe -i --crlf`, so both
+  mouse-drag copies and `prefix + [` copy-mode `y` write straight to the
+  Windows clipboard.
+- `lua/config/options.lua` sets `vim.g.clipboard` to use `win32yank.exe` for
+  the `+`/`*` registers (only on WSL, only if the binary is found), plus
+  `clipboard=unnamedplus`, so nvim yank/paste/delete use the Windows
+  clipboard by default.
+
+Since Alacritty is already a native Windows app, its own mouse-selection
+copy/paste already uses the Windows clipboard directly - no extra config
+needed there. After all three pieces are in place, copying in any of the
+three apps and pasting in any other (including into Windows applications)
+should just work.
 
 ## Windows setup (Alacritty + Nerd Font)
 

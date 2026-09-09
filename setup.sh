@@ -40,9 +40,9 @@ run_migration() {
 install_packages() {
   if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
     sudo apt update
-    sudo apt install -y tmux git gcc build-essential neovim bat wget curl xz-utils gawk
+    sudo apt install -y tmux git gcc build-essential neovim bat wget curl xz-utils gawk unzip
   elif [[ "$DISTRO" == "fedora" ]]; then
-    sudo dnf install -y tmux git gcc @development-tools neovim bat wget curl xz gawk --skip-unavailable
+    sudo dnf install -y tmux git gcc @development-tools neovim bat wget curl xz gawk unzip --skip-unavailable
   else
     echo "Unsupported distro: $DISTRO"
     exit 1
@@ -133,6 +133,26 @@ install_blesh() {
   grep -qxF "$line" "$HOME/.bashrc" || echo "$line" >> "$HOME/.bashrc"
 }
 run_migration "install_blesh" install_blesh
+
+# Migration: install win32yank.exe (only on WSL) so tmux and nvim can read
+# from and write to the real Windows clipboard. Runs as a native Windows
+# process via WSL's binfmt interop (no X server / wl-copy needed). Installed
+# to ~/.local/bin, which is already on PATH.
+install_win32yank() {
+  if ! grep -qi microsoft /proc/version 2>/dev/null; then
+    echo "Not running under WSL - skipping win32yank install (only relevant for WSL clipboard bridging)."
+    return
+  fi
+  mkdir -p "$HOME/.local/bin"
+  local tmp_dir
+  tmp_dir=$(mktemp -d)
+  curl -fsSL -o "$tmp_dir/win32yank.zip" https://github.com/equalsraf/win32yank/releases/download/v0.1.1/win32yank-x64.zip
+  unzip -o "$tmp_dir/win32yank.zip" -d "$tmp_dir" win32yank.exe >/dev/null
+  mv "$tmp_dir/win32yank.exe" "$HOME/.local/bin/win32yank.exe"
+  chmod +x "$HOME/.local/bin/win32yank.exe"
+  rm -rf "$tmp_dir"
+}
+run_migration "install_win32yank" install_win32yank
 
 #Migration 4.1
 install_build_essentials() {

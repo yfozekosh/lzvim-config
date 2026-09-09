@@ -6,6 +6,26 @@ vim.g.root_spec = { "cwd" }
 vim.g.autoformat = false
 vim.g.lazyvim_disable_animations = true
 
+-- WSL clipboard bridge: use win32yank.exe (installed by setup.sh's
+-- install_win32yank migration) so nvim yank/paste share the real Windows
+-- clipboard with Alacritty and tmux. Only applies under WSL and only if the
+-- binary is actually on PATH, so this is a no-op elsewhere.
+if vim.fn.has("wsl") == 1 and vim.fn.executable("win32yank.exe") == 1 then
+  vim.g.clipboard = {
+    name = "win32yank",
+    copy = {
+      ["+"] = "win32yank.exe -i --crlf",
+      ["*"] = "win32yank.exe -i --crlf",
+    },
+    paste = {
+      ["+"] = "win32yank.exe -o --lf",
+      ["*"] = "win32yank.exe -o --lf",
+    },
+    cache_enabled = true,
+  }
+end
+vim.opt.clipboard = "unnamedplus"
+
 vim.lsp.config("roslyn", {
   on_attach = function()
     -- nop.
