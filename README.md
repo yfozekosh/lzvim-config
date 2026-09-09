@@ -3,6 +3,7 @@
 ## Contents
 
 - [Installation](#installation)
+  - [Quick start (Windows + WSL, fresh machine)](#quick-start-windows--wsl-fresh-machine)
   - [Quick start (Fedora, fresh machine)](#quick-start-fedora-fresh-machine)
   - [Manual steps](#manual-steps)
 - [`setup.sh` details](#setupsh-details)
@@ -13,6 +14,21 @@
 - [Description](#description)
 
 ## Installation
+
+### Quick start (Windows + WSL, fresh machine)
+
+Assumes WSL is already installed with a Fedora-based distro (`wsl --install
+-d FedoraLinux-44` or similar). Run this in a normal **Windows PowerShell**
+(not inside WSL) - it detects your default WSL distro and user, then runs
+the Fedora quick start one-liner below inside it:
+
+```powershell
+$d = ((wsl.exe -l -q | Select-Object -First 1) -replace "`0","").Trim(); $u = (wsl.exe -d $d -- whoami).Trim(); Write-Host "Using WSL distro '$d' as user '$u'"; wsl.exe -d $d -- bash -lc "sudo dnf install -y git && git clone https://github.com/yfozekosh/lzvim-config.git ~/.config/nvim && cd ~/.config/nvim && bash setup.sh"
+```
+
+Once that finishes, see [Windows setup (Alacritty + Nerd
+Font)](#windows-setup-alacritty--nerd-font) below to also set up Alacritty
+and the Nerd Font on the Windows side.
 
 ### Quick start (Fedora, fresh machine)
 
