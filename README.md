@@ -6,7 +6,7 @@
   - [Quick start (Fedora, fresh machine)](#quick-start-fedora-fresh-machine)
   - [Manual steps](#manual-steps)
 - [`setup.sh` details](#setupsh-details)
-- [Building nvim-dbee (for WSL users)](#building-nvim-dbee-for-wsl-users)
+- [Forked/vendored plugins (`plugin-forks/`)](#forkedvendored-plugins-plugin-forks)
 - [Shared clipboard (Alacritty + tmux + nvim, WSL)](#shared-clipboard-alacritty--tmux--nvim-wsl)
 - [Windows setup (Alacritty + Nerd Font)](#windows-setup-alacritty--nerd-font)
 - [Committing & pushing](#committing--pushing)
@@ -115,9 +115,11 @@ machine.
 See `AGENTS.md` for the convention to follow when adding a new migration
 (every migration must be documented here).
 
-## Building nvim-dbee (for WSL users)
+## Forked/vendored plugins (`plugin-forks/`)
 
-See [`docs/nvim-dbee.md`](docs/nvim-dbee.md).
+See [`docs/plugin-forks.md`](docs/plugin-forks.md) for what's vendored in
+`plugin-forks/`, what each is based on, and why (including nvim-dbee's WSL
+build step).
 
 ## Shared clipboard (Alacritty + tmux + nvim, WSL)
 
