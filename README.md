@@ -19,16 +19,15 @@
 
 Assumes WSL is already installed with a Fedora-based distro (`wsl --install
 -d FedoraLinux-44` or similar). Run this in a normal **Windows PowerShell**
-(not inside WSL) - it detects your default WSL distro and user, then runs
-the Fedora quick start one-liner below inside it:
+(not inside WSL) - it downloads and runs
+[`windows/quickstart.ps1`](windows/quickstart.ps1), which installs
+PowerShell 7, Alacritty and the Nerd Font via `winget`, then detects your
+default (non-Docker) WSL distro/user, asks for confirmation, and runs the
+Fedora quick start below inside it plus links Alacritty's config:
 
 ```powershell
-$d = ((wsl.exe -l -q | Select-Object -First 1) -replace "`0","").Trim(); $u = (wsl.exe -d $d -- whoami).Trim(); Write-Host "Using WSL distro '$d' as user '$u'"; wsl.exe -d $d -- bash -lc "sudo dnf install -y git && git clone https://github.com/yfozekosh/lzvim-config.git ~/.config/nvim && cd ~/.config/nvim && bash setup.sh"
+curl -fsSL https://raw.githubusercontent.com/yfozekosh/lzvim-config/main/windows/quickstart.ps1 -o quickstart.ps1; powershell -ExecutionPolicy Bypass -File .\quickstart.ps1
 ```
-
-Once that finishes, see [Windows setup (Alacritty + Nerd
-Font)](#windows-setup-alacritty--nerd-font) below to also set up Alacritty
-and the Nerd Font on the Windows side.
 
 ### Quick start (Fedora, fresh machine)
 
@@ -147,8 +146,11 @@ the OSC 52/tmux-passthrough gotcha, and the `WSLInterop` persistence fix.
 ## Windows setup (Alacritty + Nerd Font)
 
 `windows/alacritty.toml` is the tracked source of truth for the Alacritty
-config. `windows/setup.ps1` is run from a **native Windows PowerShell**
-(not inside WSL) and:
+config. `windows/quickstart.ps1` (see the Windows quick start above) runs
+this automatically on a fresh machine; `windows/setup.ps1` is the standalone
+piece it calls, useful to re-run on its own later (e.g. after editing
+`windows/alacritty.toml`, or if Alacritty/the font need reinstalling).
+Run it from a **native Windows PowerShell** (not inside WSL):
 
 - Installs Alacritty via `winget` (skips if already installed)
 - Installs JetBrainsMono Nerd Font via `winget` (skips if already installed)

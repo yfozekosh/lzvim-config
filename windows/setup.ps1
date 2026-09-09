@@ -37,9 +37,35 @@ if ($font) {
 
 Write-Host "== Linking Alacritty config ==" -ForegroundColor Cyan
 
-# Resolve the default WSL distro name so we can build the \\wsl.localhost\...
-# path to this repo's tracked copy of alacritty.toml.
-$distro = (wsl.exe -l -q | Select-Object -First 1) -replace "`0", "" | ForEach-Object { $_.Trim() }
+# Resolve the default WSL distro name (ignoring Docker Desktop's own
+# docker-desktop/docker-desktop-data distros) so we can build the
+# \\wsl.localhost\... path to this repo's tracked copy of alacritty.toml.
+# `wsl -l -v` marks the default distro with a leading '*'; output comes
+# back as UTF-16 with embedded nulls through PowerShell's pipeline, so
+# strip those before parsing lines.
+$wslListRaw = (wsl.exe -l -v 2>$null) -replace "`0", ""
+$distroLines = $wslListRaw | Select-Object -Skip 1 | Where-Object { $_.Trim() -ne "" }
+
+$distro = $null
+$fallbackDistro = $null
+foreach ($line in $distroLines) {
+    $tokens = $line.Trim() -split "\s+"
+    if ($tokens.Count -eq 0) { continue }
+
+    $isDefault = $false
+    $name = $tokens[0]
+    if ($name -eq "*") {
+        $isDefault = $true
+        $name = $tokens[1]
+    }
+
+    if ($name -match "^docker-desktop") { continue } # skip Docker Desktop's own distros
+
+    if ($isDefault) { $distro = $name }
+    elseif (-not $fallbackDistro) { $fallbackDistro = $name }
+}
+if (-not $distro) { $distro = $fallbackDistro }
+
 if (-not $distro) {
     Write-Error "Could not detect a WSL distro. Pass the repo path manually and edit `$repoConfig` below."
     exit 1
