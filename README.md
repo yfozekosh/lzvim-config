@@ -1,4 +1,4 @@
-# 💤 LazyVim Configuration
+# Yurii's LazyVim Configuration
 
 ## Installation
 
@@ -10,6 +10,12 @@
 
 2. Clone this configuration:
 
+   Via HTTPS (works without SSH keys set up):
+   ```bash
+   git clone https://github.com/yfozekosh/lzvim-config.git ~/.config/nvim
+   ```
+
+   Or via SSH (if you have a key configured):
    ```bash
    git clone git@github.com:yfozekosh/lzvim-config.git ~/.config/nvim
    ```
