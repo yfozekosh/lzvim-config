@@ -1,5 +1,17 @@
 # Yurii's LazyVim Configuration
 
+## Contents
+
+- [Installation](#installation)
+  - [Quick start (Fedora, fresh machine)](#quick-start-fedora-fresh-machine)
+  - [Manual steps](#manual-steps)
+- [`setup.sh` details](#setupsh-details)
+- [Building nvim-dbee (for WSL users)](#building-nvim-dbee-for-wsl-users)
+- [Shared clipboard (Alacritty + tmux + nvim, WSL)](#shared-clipboard-alacritty--tmux--nvim-wsl)
+- [Windows setup (Alacritty + Nerd Font)](#windows-setup-alacritty--nerd-font)
+- [Committing & pushing](#committing--pushing)
+- [Description](#description)
+
 ## Installation
 
 ### Quick start (Fedora, fresh machine)
@@ -105,63 +117,23 @@ See `AGENTS.md` for the convention to follow when adding a new migration
 
 ## Building nvim-dbee (for WSL users)
 
-If you're using WSL, the dbee backend needs to be built and run on Windows due to Azure authentication requirements. A build script is provided in `plugin-forks/nvim-dbee/build-for-wsl.sh`.
-
-To build the dbee backend:
-
-```bash
-cd plugin-forks/nvim-dbee
-./build-for-wsl.sh
-```
-
-**Note:** This script must be run manually. It builds the Windows executable and places it in `/mnt/c/__Projects/dbee.exe`.
+See [`docs/nvim-dbee.md`](docs/nvim-dbee.md).
 
 ## Shared clipboard (Alacritty + tmux + nvim, WSL)
 
 On WSL, Alacritty runs as a native Windows process, but tmux and nvim run
 inside Linux, so a mouse-selection copy or a `y` in nvim only lands in an
-internal Linux buffer (tmux's paste buffer / nvim's default register) unless
-something explicitly bridges it to the real Windows clipboard.
+internal Linux buffer unless something explicitly bridges it to the real
+Windows clipboard. `setup.sh`'s `install_win32yank` migration installs
+[`win32yank.exe`](https://github.com/equalsraf/win32yank), which `.tmux.conf`
+and `lua/config/options.lua` use to read/write the real Windows clipboard,
+and `fix_wsl_interop_persistence` keeps WSL's `.exe` interop working across
+reboots. Apps that write the clipboard via an OSC 52 escape sequence (e.g.
+the Copilot CLI's click-to-copy) are handled too, including a tmux-
+passthrough gotcha that needed a small shell wrapper to work around.
 
-`setup.sh`'s `install_win32yank` migration installs
-[`win32yank.exe`](https://github.com/equalsraf/win32yank) to `~/.local/bin`
-(it runs as a native Windows process via WSL interop, no X server or
-`wl-copy` needed). Two things then use it to read/write the real Windows
-clipboard:
-
-- `.tmux.conf` sets `copy-command` to `win32yank.exe -i --crlf`, so both
-  mouse-drag copies and `prefix + [` copy-mode `y` write straight to the
-  Windows clipboard.
-- `lua/config/options.lua` sets `vim.g.clipboard` to use `win32yank.exe` for
-  the `+`/`*` registers (only on WSL, only if the binary is found), plus
-  `clipboard=unnamedplus`, so nvim yank/paste/delete use the Windows
-  clipboard by default.
-
-Since Alacritty is already a native Windows app, its own mouse-selection
-copy/paste already uses the Windows clipboard directly - no extra config
-needed there.
-
-**OSC 52 (apps like the Copilot CLI's own click-to-copy):** some tools
-write to the clipboard via an OSC 52 escape sequence instead of tmux's
-copy-command path. Relaying that straight through Alacritty doesn't work on
-WSL - OSC 52 gets silently dropped somewhere in the WSL&lt;-&gt;Windows conpty
-layer that Alacritty's `wsl.exe` integration goes through (a known,
-unfixable-from-here Windows limitation; `windows/alacritty.toml` still sets
-`terminal.osc52 = "CopyPaste"` since it's correct/harmless, it just doesn't
-help here). Instead, `.tmux.conf` sets `set-clipboard on` plus a
-`pane-set-clipboard` hook that pipes any OSC 52 write tmux sees straight
-into `win32yank.exe`, bypassing Alacritty's relay entirely. This only
-catches *plain* OSC 52 sequences though - if the writing app detects it's
-inside tmux (`$TMUX` set) it may instead wrap the sequence in tmux's raw
-passthrough format (`\ePtmux;...\e\\`), which tells tmux to relay it
-untouched to the outer terminal, skipping tmux's own interception and
-hitting the same dead end. The Copilot CLI does this, so `.bash_profile_yf`
-defines a `copilot() (...)` wrapper function that unsets `$TMUX` just for
-that one process, making it emit the plain (non-wrapped) form instead.
-
-After all pieces are in place, copying in any of the apps (nvim, tmux
-mouse-drag/copy-mode, Copilot CLI's click-to-copy) and pasting in any other
-(including into Windows applications) should just work.
+See [`docs/clipboard.md`](docs/clipboard.md) for the full architecture,
+the OSC 52/tmux-passthrough gotcha, and the `WSLInterop` persistence fix.
 
 ## Windows setup (Alacritty + Nerd Font)
 
