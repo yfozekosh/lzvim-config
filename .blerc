@@ -17,3 +17,11 @@ ble-face menu_complete_selected=fg=253,bg=238
 # Completion menu filter/search input: default is fg=16,bg=229 (black text on
 # bright yellow). Match the muted selection highlight above instead.
 ble-face menu_filter_input=fg=253,bg=238
+
+# Tab: standard bash-like completion behaviour (complete common prefix /
+# just list candidates), with no auto-entering of the highlighted
+# menu-selection/cycling mode (default: repeated Tab presses auto-enter
+# selection mode). Ctrl+Tab is already bound by default to explicitly
+# trigger that selection-cycling ("menu-complete") mode, unaffected by
+# this option, so it's still available on demand.
+bleopt complete_menu_complete=
