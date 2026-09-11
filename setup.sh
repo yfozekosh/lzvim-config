@@ -296,6 +296,27 @@ install_lazygit() {
 }
 run_migration "install_lazygit" install_lazygit
 
+# Migration: install good fonts (WSL only) so KiCad and other GTK apps
+# render with DejaVu (solid Unicode coverage) and Liberation (metric-
+# compatible with Arial / Times New Roman / Courier New) instead of the
+# default Droid Sans fallback which looks poor in KiCad's UI.
+install_wsl_fonts() {
+  if ! grep -qi microsoft /proc/version 2>/dev/null; then
+    echo "Not running under WSL - skipping font install."
+    return
+  fi
+  if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
+    sudo apt install -y fonts-dejavu fonts-liberation
+  elif [[ "$DISTRO" == "fedora" ]]; then
+    sudo dnf install -y dejavu-fonts-all liberation-fonts-all
+  else
+    echo "Unsupported distro for font install: $DISTRO"
+    return
+  fi
+  fc-cache -f
+}
+run_migration "install_wsl_fonts" install_wsl_fonts
+
 # Migration: pre-install all nvim plugins (lazy.nvim), treesitter parsers,
 # and Mason-managed LSP servers/tools headlessly, so the first interactive
 # `nvim` launch on a fresh machine doesn't have to wait for/babysit

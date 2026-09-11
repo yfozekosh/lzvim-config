@@ -24,6 +24,7 @@ if command -v tmux &>/dev/null && [ -z "$TMUX" ] && [ -n "$PS1" ]; then
 fi
 
 # ---- paths ----
+# export YF_ENABLE_COPILOT_SYNC=1  # uncomment to enable Copilot AI-credit usage in tmux status bar
 export PROJECT_PATH=~/dispute/ # on Git Bash / MSYS
 # export PROJECT_PATH="$HOME/__Projects/dispute" # example for Linux/macOS
 export COMPOSE_FOLDER_PATH="$PROJECT_PATH/src/docker-compose"

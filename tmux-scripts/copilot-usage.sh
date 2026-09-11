@@ -5,6 +5,11 @@
 # real page takes ~2-3s, so this wrapper caches the result and refreshes in
 # the background on a cooldown so tmux always reads instantly.
 
+# Opt-in: set YF_ENABLE_COPILOT_SYNC=1 (or any non-empty value) to enable.
+if [ -z "${YF_ENABLE_COPILOT_SYNC:-}" ]; then
+  exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/copilot-usage-scraper"
 CACHE_FILE="$HOME/.cache/tmux-copilot-usage"
 LOCK_FILE="$HOME/.cache/tmux-copilot-usage.lock"
@@ -50,8 +55,8 @@ if [ -f "$CACHE_FILE" ]; then
   if [ "$age" -ge "$REFRESH_SECONDS" ]; then
     refresh_cache
   fi
-  cat "$CACHE_FILE"
+  echo "Copilot:[$(cat "$CACHE_FILE")]"
 else
-  echo "loading..."
+  echo "Copilot:[loading...]"
   refresh_cache
 fi
