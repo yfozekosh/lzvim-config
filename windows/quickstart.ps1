@@ -1,7 +1,7 @@
 # Fresh-Windows-machine bootstrap for this dotfiles repo. Meant to be
 # fetched and run directly (see README.md's "Quick start (Windows + WSL)"
 # section for the curl one-liner) - it doesn't assume the repo is cloned
-# anywhere yet.
+# anywhere yet. Safe to re-run on an already-set-up machine (idempotent).
 #
 # What it does, in order:
 #   1. Installs PowerShell 7 via winget (if missing).
@@ -10,9 +10,9 @@
 #   4. Detects the default WSL distro (ignoring Docker Desktop's
 #      docker-desktop/docker-desktop-data distros) and its default user.
 #   5. Asks for confirmation before touching anything inside WSL.
-#   6. If confirmed: clones this repo into ~/.config/nvim in that distro and
-#      runs setup.sh there, then runs windows/setup.ps1 from the
-#      newly-cloned repo to link Alacritty's config.
+#   6. If confirmed: clones this repo into ~/.config/nvim in that distro
+#      (or `git pull`s it if already cloned there) and runs setup.sh, then
+#      runs windows/setup.ps1 from the repo to link Alacritty's config.
 #
 # Usage (from a normal Windows PowerShell, NOT inside WSL):
 #   curl -fsSL https://raw.githubusercontent.com/yfozekosh/lzvim-config/main/windows/quickstart.ps1 -o quickstart.ps1
@@ -82,14 +82,17 @@ if (-not $distro) {
 $wslUser = (wsl.exe -d $distro -- whoami).Trim()
 
 Write-Host "`nDetected WSL distro '$distro' (user '$wslUser')." -ForegroundColor Yellow
-$confirm = Read-Host "Clone lzvim-config into ~/.config/nvim and run setup.sh there? (y/N)"
+$confirm = Read-Host "Clone/update lzvim-config in ~/.config/nvim and run setup.sh there? (y/N)"
 if ($confirm -notmatch "^[Yy]") {
     Write-Host "Aborted - nothing else was changed."
     exit 0
 }
 
-Write-Host "`n== Cloning repo and running setup.sh inside WSL ($distro) ==" -ForegroundColor Cyan
-wsl.exe -d $distro -- bash -lc "sudo dnf install -y git && git clone https://github.com/yfozekosh/lzvim-config.git ~/.config/nvim && cd ~/.config/nvim && bash setup.sh"
+Write-Host "`n== Cloning/updating repo and running setup.sh inside WSL ($distro) ==" -ForegroundColor Cyan
+# Clone only if ~/.config/nvim doesn't exist yet; if it does (re-run on an
+# already-set-up machine), pull the latest changes instead so this stays
+# idempotent and setup.sh's migrations always get (re-)run.
+wsl.exe -d $distro -- bash -lc "sudo dnf install -y git && if [ -d ~/.config/nvim/.git ]; then git -C ~/.config/nvim pull --ff-only; else git clone https://github.com/yfozekosh/lzvim-config.git ~/.config/nvim; fi && cd ~/.config/nvim && bash setup.sh"
 
 Write-Host "`n== Linking Alacritty config ==" -ForegroundColor Cyan
 $repoSetupPs1 = "\\wsl.localhost\$distro\home\$wslUser\.config\nvim\windows\setup.ps1"
