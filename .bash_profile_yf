@@ -302,9 +302,20 @@ __short_path_under_project() {
 if [[ -n "${BASH_VERSION-}" ]]; then
   if [[ $- == *i* ]]; then
     fastfetch
-    # Prefer the WSL distro name (set by WSL itself) over the machine
-    # hostname, which under WSL doesn't reflect which distro this is.
-    node_name=" ${WSL_DISTRO_NAME:-$(uname -n)}"
+    # Prefer the WSL distro name over the machine hostname (which under
+    # WSL doesn't reflect which distro this is). $WSL_DISTRO_NAME is set
+    # for one-off/non-login invocations but is unreliably dropped by some
+    # interactive WSL+systemd login sessions (a known WSL quirk - the
+    # systemd --user manager caches whatever env was available at the
+    # first login of the boot, and some distros/boots never get it set to
+    # begin with). `wslpath -w /` resolves the distro name through the
+    # interop driver directly instead, so it stays correct even then.
+    distro_name=
+    if command -v wslpath &>/dev/null; then
+      distro_name="$(wslpath -w / 2>/dev/null | cut -d'\' -f4)"
+    fi
+    node_name=" ${distro_name:-${WSL_DISTRO_NAME:-$(uname -n)}}"
+    unset distro_name
     if [[ -n "${SKIP_NODE_NAME-}" ]]; then
       node_name=
     fi
