@@ -159,10 +159,19 @@ Run it from a **native Windows PowerShell** (not inside WSL):
   `\\wsl.localhost\<distro>\...` (real symlink if Developer Mode/admin is
   available, otherwise falls back to a one-time copy - re-run the script
   after editing the repo config to re-sync in that case)
+- Creates an "Alacritty (WSL)" shortcut in the Start Menu that launches
+  Alacritty straight into the WSL distro (`alacritty.exe -e wsl.exe --cd ~`)
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File \\wsl.localhost\<distro>\home\<user>\.config\nvim\windows\setup.ps1
 ```
+
+Alacritty's own default shell (used when you just launch/pin `alacritty.exe`
+directly, e.g. from the taskbar) is PowerShell, not WSL - run `wsl` from
+inside it to enter the WSL distro, and `exit` drops you back to a live
+PowerShell prompt instead of closing the window. For a window that launches
+straight into WSL instead, use (or pin) the separate "Alacritty (WSL)"
+shortcut created above.
 
 ## Committing & pushing
 

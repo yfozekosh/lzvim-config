@@ -1,6 +1,11 @@
 [terminal.shell]
-program = "wsl.exe"
-args = ["--cd", "~"]
+program = "powershell.exe"
+
+# Default shell is PowerShell, so that entering the WSL sandbox (via `wsl`)
+# and later exiting it drops back to a live PowerShell prompt instead of
+# closing the window - the window only closes when PowerShell itself exits.
+# A separate "Alacritty (WSL)" shortcut (see windows/setup.ps1) launches
+# straight into WSL for a WSL-only window instead.
 
 # Allow apps inside the terminal (nvim, tmux, the Copilot CLI's own
 # click-to-copy, etc.) to write to the real Windows clipboard via OSC 52

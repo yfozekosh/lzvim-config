@@ -1,7 +1,10 @@
 # Windows setup script (run in a normal PowerShell window on Windows, NOT
 # inside WSL) - installs Alacritty + the Nerd Font used by this dotfiles
-# repo, and links Alacritty's config to the copy tracked in this repo
-# (windows/alacritty.toml) so future edits made from WSL apply automatically.
+# repo, links Alacritty's config to the copy tracked in this repo
+# (windows/alacritty.toml) so future edits made from WSL apply automatically,
+# and creates an "Alacritty (WSL)" Start Menu shortcut that launches straight
+# into the WSL distro (pin it to the taskbar for a separate WSL-only icon,
+# alongside the default Alacritty icon which now opens PowerShell).
 #
 # Usage (from PowerShell):
 #   powershell -ExecutionPolicy Bypass -File .\setup.ps1
@@ -95,6 +98,37 @@ try {
     Write-Warning "Could not create a symlink (needs admin rights or Developer Mode enabled). Copying the file instead."
     Copy-Item $repoConfig $target -Force
     Write-Host "Copied $repoConfig -> $target (re-run this script after editing the repo config to re-sync)."
+}
+
+Write-Host "== Creating 'Alacritty (WSL)' shortcut ==" -ForegroundColor Cyan
+
+# alacritty.toml's default shell is PowerShell (so exiting a `wsl` session
+# drops back to a live PowerShell prompt instead of closing the window).
+# For a window that launches straight into the WSL distro instead, create a
+# separate Start Menu shortcut the user can pin to the taskbar alongside the
+# regular Alacritty (PowerShell) shortcut/icon.
+$alacrittyExe = (Get-Command alacritty.exe -ErrorAction SilentlyContinue).Source
+if (-not $alacrittyExe) {
+    $candidate = Join-Path ${env:ProgramFiles} "Alacritty\alacritty.exe"
+    if (Test-Path $candidate) { $alacrittyExe = $candidate }
+}
+
+if (-not $alacrittyExe) {
+    Write-Warning "Could not locate alacritty.exe - skipping 'Alacritty (WSL)' shortcut creation."
+} else {
+    $startMenuPrograms = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
+    $shortcutPath = Join-Path $startMenuPrograms "Alacritty (WSL).lnk"
+
+    $wshShell = New-Object -ComObject WScript.Shell
+    $shortcut = $wshShell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $alacrittyExe
+    $shortcut.Arguments = "-e wsl.exe --cd ~"
+    $shortcut.WorkingDirectory = Split-Path $alacrittyExe
+    $shortcut.IconLocation = $alacrittyExe
+    $shortcut.Save()
+
+    Write-Host "Created Start Menu shortcut: $shortcutPath"
+    Write-Host "Find 'Alacritty (WSL)' in the Start Menu and 'Pin to taskbar' to get a separate WSL-only icon."
 }
 
 Write-Host "`nDone. Restart Alacritty to pick up the font/config." -ForegroundColor Green
