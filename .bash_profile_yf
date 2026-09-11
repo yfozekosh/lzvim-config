@@ -302,7 +302,9 @@ __short_path_under_project() {
 if [[ -n "${BASH_VERSION-}" ]]; then
   if [[ $- == *i* ]]; then
     fastfetch
-    node_name=" $(uname -n)"
+    # Prefer the WSL distro name (set by WSL itself) over the machine
+    # hostname, which under WSL doesn't reflect which distro this is.
+    node_name=" ${WSL_DISTRO_NAME:-$(uname -n)}"
     if [[ -n "${SKIP_NODE_NAME-}" ]]; then
       node_name=
     fi
