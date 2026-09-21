@@ -109,10 +109,11 @@ machine.
 | `install_build_essentials` | Installs `gcc-c++`, `cmake`, `vim`, `fastfetch`, `awk`, `bat` |
 | `install_tmux_mem_cpu_load` | Builds and installs `tmux-mem-cpu-load` from `app-forks/tmux-mem-cpu-load` |
 | `install_dotnet` | Installs .NET runtime dependencies and runs the official `dotnet-install.sh` |
-| `install_nodejs` | Installs Node.js + npm (needed by the two migrations below) |
+| `install_nodejs` | Installs Node.js + npm (needed by the three migrations below) |
 | `install_copilot_cli` | Installs the GitHub Copilot CLI (`npm install -g @github/copilot`) |
+| `configure_claude_statusline` | Points Claude Code's `statusLine.command` (in `~/.claude/settings.json`) at `claude-scripts/statusline.sh`, unless that setting is already customized. Claude Code invokes that script after every response with the session's real cost (its own accounting) and context-window usage; it caches those for the tmux Claude usage widget (`tmux-scripts/claude-usage.sh`, shown only while the active window has the Claude CLI running) and prints a compact summary as Claude Code's own status line. Note: this is real per-session cost, not the monthly-plan quota `/usage` shows - Claude Code's statusLine hook has no rate-limit/quota field to read |
 | `install_gh_cli` | Installs the GitHub CLI (`gh`) from the official apt/dnf repo |
-| `install_copilot_usage_scraper` | Installs npm deps + Playwright Chromium + OS runtime libs for the tmux Copilot AI-credit usage widget (`tmux-scripts/copilot-usage-scraper/`) |
+| `install_copilot_usage_scraper` | Installs npm deps + Playwright Chromium + OS runtime libs for the tmux Copilot AI-credit usage widget (`tmux-scripts/copilot-usage-scraper/`), shown in the status bar only while the active window has the Copilot CLI running in one of its panes |
 | `install_lazygit` | Installs `lazygit` (Fedora via the `atim/lazygit` copr repo; other distros get a warning with manual install instructions) |
 | `install_wsl_fonts` | WSL only: installs DejaVu + Liberation font families so KiCad and other GTK apps render with good fonts instead of the default Droid Sans fallback |
 | `install_blesh` | Builds and installs [ble.sh](https://github.com/akinomyoga/ble.sh) (Bash Line Editor - fish/zsh-like syntax highlighting, autosuggestions, vim-mode editing for bash) from git source, sources it from `~/.bashrc` |

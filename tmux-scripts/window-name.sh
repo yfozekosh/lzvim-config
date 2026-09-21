@@ -13,6 +13,8 @@ comm_base=$(basename "$comm" 2>/dev/null)
 
 if echo "$args" | grep -qiE 'copilot|opencode'; then
   echo "ai-$(basename "$cwd")"
+elif echo "$comm_base" | grep -qiE '^claude$'; then
+  echo "claude-$(basename "$cwd")"
 elif echo "$comm_base" | grep -qiE '^n?vim$'; then
   echo "nvim-$(basename "$cwd")"
 elif echo "$comm_base" | grep -qiE '^ssh$'; then

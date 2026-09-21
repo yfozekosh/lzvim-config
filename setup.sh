@@ -241,6 +241,38 @@ install_copilot_cli() {
 }
 run_migration "install_copilot_cli" install_copilot_cli
 
+# Migration: point Claude Code's statusLine hook at claude-scripts/statusline.sh
+# (needs node from install_nodejs above, since that script shells out to
+# `node -e` to parse/write JSON). Claude Code invokes this script after every
+# response with the session's real cost (cost.total_cost_usd - Claude Code's
+# own accounting, not a local estimate) and context-window usage - the
+# script caches those to ~/.cache/claude-session-usage.json for
+# tmux-scripts/claude-usage.sh to read, and prints a compact summary that
+# becomes Claude Code's own status line. Only sets statusLine.command if it
+# isn't already configured, so it never clobbers a customization made
+# outside this repo. NOTE: this payload has no rate-limit/quota field, so it
+# can only ever surface real per-session cost, not the monthly-plan quota
+# the /usage command shows.
+configure_claude_statusline() {
+  local settings="$HOME/.claude/settings.json"
+  local script_path="$PWD/claude-scripts/statusline.sh"
+  mkdir -p "$(dirname "$settings")"
+  [ -f "$settings" ] || echo '{}' > "$settings"
+  node -e '
+    const fs = require("fs");
+    const [settingsPath, scriptPath] = process.argv.slice(1);
+    const settings = JSON.parse(fs.readFileSync(settingsPath, "utf8") || "{}");
+    if (settings.statusLine && settings.statusLine.command) {
+      console.log("statusLine.command already set (" + settings.statusLine.command + ") - leaving as-is");
+    } else {
+      settings.statusLine = { type: "command", command: scriptPath };
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + "\n");
+      console.log("Configured Claude Code statusLine.command -> " + scriptPath);
+    }
+  ' "$settings" "$script_path"
+}
+run_migration "configure_claude_statusline" configure_claude_statusline
+
 # Migration: install GitHub CLI (gh)
 install_gh_cli() {
   if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then

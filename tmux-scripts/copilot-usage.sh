@@ -4,9 +4,35 @@
 # login session (see login.js / README.md in this directory). Refreshing the
 # real page takes ~2-3s, so this wrapper caches the result and refreshes in
 # the background on a cooldown so tmux always reads instantly.
+#
+# The widget text is only printed when the Copilot CLI is actually running
+# in the active window (any pane), so it doesn't clutter the status bar for
+# windows that have nothing to do with Copilot. Args: $1 = active window id
+# (tmux's #{window_id}), passed from .tmux.conf's status-right.
 
 # Opt-in: set YF_ENABLE_COPILOT_SYNC=1 (or any non-empty value) to enable.
 if [ -z "${YF_ENABLE_COPILOT_SYNC:-}" ]; then
+  exit 0
+fi
+
+WINDOW_ID="$1"
+
+# Mirrors the copilot detection in window-name.sh: true if any pane in the
+# given window has a direct child process whose command line mentions
+# "copilot" (the actual foreground program, not the shell hosting it).
+window_has_copilot() {
+  local wid="$1" pid
+  [ -z "$wid" ] && return 1
+  while IFS= read -r pid; do
+    [ -z "$pid" ] && continue
+    if pgrep -P "$pid" -a 2>/dev/null | grep -qi 'copilot'; then
+      return 0
+    fi
+  done < <(tmux list-panes -t "$wid" -F '#{pane_pid}' 2>/dev/null)
+  return 1
+}
+
+if ! window_has_copilot "$WINDOW_ID"; then
   exit 0
 fi
 
