@@ -11,7 +11,7 @@ args=$(echo "$cmdline" | sed -E 's/^[0-9]+ //')
 comm=$(echo "$args" | awk '{print $1}')
 comm_base=$(basename "$comm" 2>/dev/null)
 
-if echo "$args" | grep -qi 'copilot'; then
+if echo "$args" | grep -qiE 'copilot|opencode'; then
   echo "ai-$(basename "$cwd")"
 elif echo "$comm_base" | grep -qiE '^n?vim$'; then
   echo "nvim-$(basename "$cwd")"
