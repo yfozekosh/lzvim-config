@@ -8,6 +8,7 @@
   - [Manual steps](#manual-steps)
 - [`setup.sh` details](#setupsh-details)
 - [Forked/vendored plugins (`plugin-forks/`)](#forkedvendored-plugins-plugin-forks)
+- [C# / Roslyn troubleshooting](#c--roslyn-troubleshooting)
 - [Shared clipboard (Alacritty + tmux + nvim, WSL)](#shared-clipboard-alacritty--tmux--nvim-wsl)
 - [Windows setup (Alacritty + Nerd Font)](#windows-setup-alacritty--nerd-font)
 - [Committing & pushing](#committing--pushing)
@@ -129,6 +130,22 @@ See `AGENTS.md` for the convention to follow when adding a new migration
 See [`docs/plugin-forks.md`](docs/plugin-forks.md) for what's vendored in
 `plugin-forks/`, what each is based on, and why (including nvim-dbee's WSL
 build step).
+
+## C# / Roslyn troubleshooting
+
+C# support is via `seblyng/roslyn.nvim` (`lua/plugins/roslyn.lua`), backed
+by a Roslyn language server that's installed and launched through Mason.
+Its project loading depends on `dotnet`/`DOTNET_ROOT` being correct and, for
+projects using a private NuGet feed, a `nugetPAT` environment variable
+(exported from `~/.nugetPAT` in `.bashrc`). `lua/roslyn_diagnostics.lua`
+adds a `:RoslynDoctor` health-check command and turns Roslyn project-load
+failures (bad SDK, NuGet 401s, ...) into batched `vim.notify` warnings
+instead of them silently sitting in `:LspLog`.
+
+See [`docs/dotnet-roslyn-troubleshooting.md`](docs/dotnet-roslyn-troubleshooting.md)
+for the full breakdown of failure modes (including the Roslyn build daemon
+being a long-lived shared process that keeps a stale environment across
+nvim restarts) and how to diagnose them.
 
 ## Shared clipboard (Alacritty + tmux + nvim, WSL)
 

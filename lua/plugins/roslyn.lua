@@ -44,6 +44,17 @@ return {
         end
       end)
     end
+
+    -- Surface project-load failures (bad dotnet SDK, NuGet 401s, etc.) as
+    -- vim.notify instead of silently sitting in :LspLog. See
+    -- docs/dotnet-roslyn-troubleshooting.md and `:RoslynDoctor`.
+    local roslyn_diagnostics = require("roslyn_diagnostics")
+    vim.lsp.config("roslyn", {
+      handlers = {
+        ["window/logMessage"] = roslyn_diagnostics.wrap_log_message_handler(vim.lsp.handlers["window/logMessage"]),
+      },
+    })
+
     require("roslyn").setup(opts)
   end,
 }
