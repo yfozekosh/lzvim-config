@@ -39,7 +39,10 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/copilot-usage-scraper"
 CACHE_FILE="$HOME/.cache/tmux-copilot-usage"
 LOCK_FILE="$HOME/.cache/tmux-copilot-usage.lock"
+LOGIN_FAIL_FILE="$HOME/.cache/tmux-copilot-usage.login-failed"
 REFRESH_SECONDS=300  # refresh at most every 5 minutes
+LOGIN_RETRY_SECONDS=1800  # don't re-pop the headed login browser more than every 30 minutes
+LOGIN_TIMEOUT_SECONDS=330  # hard cap so a hung/headless browser can't wedge the lock forever
 
 mkdir -p "$(dirname "$CACHE_FILE")"
 
@@ -54,15 +57,34 @@ refresh_cache() {
     echo $$ > "$LOCK_FILE"
     result=$(cd "$SCRIPT_DIR" && node fetch.js 2>/dev/null)
     if [ "$result" = "expired" ]; then
-      echo "relogin..." > "$CACHE_FILE"
-      # Auto-launch the login flow (headed browser via WSLg) so the user just
-      # has to enter password/2FA - login.js guards against duplicate windows.
-      # Wait for it to finish, then immediately re-fetch so the cache updates
-      # right away instead of waiting for the next 5-minute cooldown.
-      (cd "$SCRIPT_DIR" && node login.js >/dev/null 2>&1)
-      result=$(cd "$SCRIPT_DIR" && node fetch.js 2>/dev/null)
-      if [ -n "$result" ] && [ "$result" != "expired" ]; then
-        echo "$result" > "$CACHE_FILE"
+      # If a recent auto-login attempt already failed (timed out, WSLg
+      # unavailable, user missed the window, etc.), don't keep popping a
+      # headed browser every 5 minutes forever - back off and just show a
+      # clear failure state until LOGIN_RETRY_SECONDS has passed.
+      fail_age=999999
+      if [ -f "$LOGIN_FAIL_FILE" ]; then
+        fail_mtime=$(stat -c %Y "$LOGIN_FAIL_FILE" 2>/dev/null || echo 0)
+        fail_age=$(( $(date +%s) - fail_mtime ))
+      fi
+      if [ "$fail_age" -lt "$LOGIN_RETRY_SECONDS" ]; then
+        echo "relogin failed" > "$CACHE_FILE"
+      else
+        echo "relogin..." > "$CACHE_FILE"
+        # Auto-launch the login flow (headed browser via WSLg) so the user
+        # just has to enter password/2FA - login.js guards against duplicate
+        # windows. `timeout` bounds the wait so a hung/broken display can't
+        # wedge this lock (and the cache) forever. Wait for it to finish,
+        # then immediately re-fetch so the cache updates right away instead
+        # of waiting for the next cooldown.
+        (cd "$SCRIPT_DIR" && timeout "$LOGIN_TIMEOUT_SECONDS" node login.js >/dev/null 2>&1 < /dev/null)
+        result=$(cd "$SCRIPT_DIR" && node fetch.js 2>/dev/null)
+        if [ -n "$result" ] && [ "$result" != "expired" ]; then
+          echo "$result" > "$CACHE_FILE"
+          rm -f "$LOGIN_FAIL_FILE"
+        else
+          echo "relogin failed" > "$CACHE_FILE"
+          touch "$LOGIN_FAIL_FILE"
+        fi
       fi
     elif [ -n "$result" ]; then
       echo "$result" > "$CACHE_FILE"

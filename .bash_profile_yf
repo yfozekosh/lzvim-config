@@ -10,6 +10,13 @@ if [ -n "$PS1" ] && [[ "$PWD" == /mnt/* ]]; then
   cd "$HOME" || true
 fi
 
+# Opt-in: Copilot AI-credit usage in tmux status bar. Must be exported
+# *before* the auto-tmux block below, since that block `exec`s into a new
+# tmux session - anything exported after `exec` never runs, so the tmux
+# server (and every #() status-bar command it later runs) would never see
+# this variable.
+export YF_ENABLE_COPILOT_SYNC=1
+
 # ---- auto tmux ----
 # New interactive shell (e.g. Alacritty -> WSL): if no tmux session is
 # currently attached anywhere (ignores stray detached/orphan sessions left
@@ -24,7 +31,6 @@ if command -v tmux &>/dev/null && [ -z "$TMUX" ] && [ -n "$PS1" ]; then
 fi
 
 # ---- paths ----
-# export YF_ENABLE_COPILOT_SYNC=1  # uncomment to enable Copilot AI-credit usage in tmux status bar
 export PROJECT_PATH=~/dispute/ # on Git Bash / MSYS
 # export PROJECT_PATH="$HOME/__Projects/dispute" # example for Linux/macOS
 export COMPOSE_FOLDER_PATH="$PROJECT_PATH/src/docker-compose"
@@ -475,8 +481,40 @@ gh-cookie-clear() {
   local cache_file="$HOME/.cache/tmux-copilot-usage"
   local lock_file="$HOME/.cache/tmux-copilot-usage.lock"
   local login_lock="$HOME/.config/copilot-usage/login.lock"
-  rm -f "$state_file" "$cache_file" "$lock_file" "$login_lock"
+  local login_fail_file="$HOME/.cache/tmux-copilot-usage.login-failed"
+  rm -f "$state_file" "$cache_file" "$lock_file" "$login_lock" "$login_fail_file"
   echo "Cleared saved Copilot usage session ($state_file). Next tmux refresh will trigger re-login."
+}
+
+# Interactively (and immediately, in the foreground) run the headed-browser
+# GitHub login flow used by the tmux Copilot usage widget, instead of
+# waiting for the background tmux refresh to notice an expired session.
+# Also clears the widget's 30-minute "relogin failed" backoff marker so the
+# tmux widget doesn't keep showing a stale failure after you've logged in.
+gh-relogin() {
+  local scraper_dir="$HOME/.config/nvim/tmux-scripts/copilot-usage-scraper"
+  local cache_file="$HOME/.cache/tmux-copilot-usage"
+  local lock_file="$HOME/.cache/tmux-copilot-usage.lock"
+  local login_fail_file="$HOME/.cache/tmux-copilot-usage.login-failed"
+  if [ ! -d "$scraper_dir" ]; then
+    echo "gh-relogin: scraper dir not found at $scraper_dir" >&2
+    return 1
+  fi
+  rm -f "$lock_file" "$login_fail_file"
+  (cd "$scraper_dir" && node login.js)
+  local status=$?
+  if [ $status -ne 0 ]; then
+    echo "gh-relogin: login did not complete successfully." >&2
+    return $status
+  fi
+  local result
+  result=$(cd "$scraper_dir" && node fetch.js 2>/dev/null)
+  if [ -n "$result" ] && [ "$result" != "expired" ]; then
+    echo "$result" > "$cache_file"
+    echo "gh-relogin: logged in, usage now $result"
+  else
+    echo "gh-relogin: logged in, but fetching usage failed - tmux will retry."
+  fi
 }
 
 # Save your GitHub password locally (chmod 600) so re-login auto-fills it.
@@ -527,7 +565,11 @@ copilot() (
 
 alias l="ls -l"
 alias la="ls -l -a"
-alias explorer="explorer.exe"
-alias clip="clip.exe"
-alias exp="explorer.exe ."
+# Full paths used below since /mnt/c/Windows/System32 etc. aren't on $PATH
+# (WSL [interop] appendWindowsPath isn't enabled) - bare "explorer.exe" /
+# "clip.exe" / "rider64.exe" would otherwise fail with "command not found".
+alias explorer="/mnt/c/Windows/explorer.exe"
+alias clip="/mnt/c/Windows/System32/clip.exe"
+alias exp="/mnt/c/Windows/explorer.exe ."
+alias rider="/mnt/c/Users/FozekoshYurii/AppData/Local/Programs/Rider/bin/rider64.exe"
 export NODE_OPTIONS="--max-old-space-size=16192"
