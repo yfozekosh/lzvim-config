@@ -103,8 +103,9 @@ machine.
 |---|---|
 | `install_packages` | Installs `tmux`, `git`, `gcc`, `neovim`, `bat` (+ build tools on Fedora) |
 | `install_cmake` | Installs `cmake` |
-| `install_tpm` | Clones the Tmux Plugin Manager (TPM) to `~/.tmux/plugins/tpm` |
+| `install_tpm` | Clones the Tmux Plugin Manager (TPM) to `~/.tmux/plugins/tpm`, but only if it isn't already there (checks for the `.git` dir) - previously it blind-cloned with `\|\| true`, which swallowed every failure and could log success without restoring a deleted clone |
 | `link_configs` | Symlinks `.tmux.conf`, `.bash_profile_yf`, `.blerc` (ble.sh color/behavior tweaks), `tmux-scripts/` (as `~/.tmux/scripts`), and `copilot-instructions.md` (as `~/.copilot/copilot-instructions.md`) into place |
+| `repair_config_symlinks` | Re-creates any of those symlinks that are missing or point at the wrong path. Runs unconditionally on every `setup.sh` run (it is a no-op when the links are healthy) because `link_configs` is migration-log-guarded and so never re-runs - without this, a deleted `~/.tmux/scripts` silently breaks tmux window auto-naming, since `automatic-rename-format` shells out to `~/.tmux/scripts/window-name.sh` and tmux falls back to empty window names with no error |
 | `install_tmux_plugins` | Starts a throwaway tmux server/session if none is running, sets `TMUX_PLUGIN_MANAGER_PATH` explicitly, then runs TPM's non-interactive installer so tmux plugins (`tmux-sensible`, `tmux-which-key`) are installed without needing to press `prefix+I` (works standalone even before tmux.conf has ever been loaded by a live session) |
 | `bashrc_source` | Adds `source ~/.bash_profile_yf` to `~/.bashrc` |
 | `install_build_essentials` | Installs `gcc-c++`, `cmake`, `vim`, `fastfetch`, `awk`, `bat` |
@@ -112,14 +113,14 @@ machine.
 | `install_dotnet` | Installs .NET runtime dependencies and runs the official `dotnet-install.sh` |
 | `install_nodejs` | Installs Node.js + npm (needed by the three migrations below) |
 | `install_copilot_cli` | Installs the GitHub Copilot CLI (`npm install -g @github/copilot`) |
-| `configure_claude_statusline` | Points Claude Code's `statusLine.command` (in `~/.claude/settings.json`) at `claude-scripts/statusline.sh`, unless that setting is already customized. Claude Code invokes that script after every response with the session's real cost (its own accounting) and context-window usage; it caches those for the tmux Claude usage widget (`tmux-scripts/claude-usage.sh`, shown only while the active window has the Claude CLI running) and prints a compact summary as Claude Code's own status line. Note: this is real per-session cost, not the monthly-plan quota `/usage` shows - Claude Code's statusLine hook has no rate-limit/quota field to read |
+| `configure_claude_statusline` | Points Claude Code's `statusLine.command` (in `~/.claude/settings.json`) at `claude-scripts/statusline.sh`, and **repairs** it if it has gone stale. Because that setting stores an absolute path into this repo, it silently breaks if the repo moves, and `~/.claude/settings.json` can be deleted or rewritten by Claude Code itself; the old "only set if unset" logic plus the migration-log guard meant either case stayed broken while `setup.sh` reported success. A genuine customization pointing at a different, existing script is still left alone. Claude Code invokes that script after every response with the session's real cost (its own accounting) and context-window usage; it caches those for the tmux Claude usage widget (`tmux-scripts/claude-usage.sh`, shown only while the active window has the Claude CLI running) and prints a compact summary as Claude Code's own status line. Note: this is real per-session cost, not the monthly-plan quota `/usage` shows - Claude Code's statusLine hook has no rate-limit/quota field to read |
 | `install_gh_cli` | Installs the GitHub CLI (`gh`) from the official apt/dnf repo |
 | `install_copilot_usage_scraper` | Installs npm deps + Playwright Chromium + OS runtime libs for the tmux Copilot AI-credit usage widget (`tmux-scripts/copilot-usage-scraper/`), shown in the status bar only while the active window has the Copilot CLI running in one of its panes |
 | `install_lazygit` | Installs `lazygit` (Fedora via the `atim/lazygit` copr repo; other distros get a warning with manual install instructions) |
-| `install_wsl_fonts` | WSL only: installs DejaVu + Liberation font families so KiCad and other GTK apps render with good fonts instead of the default Droid Sans fallback |
+| `install_wsl_fonts` | WSL only (runs via `run_migration_if_wsl`, so it stays *unapplied* - and will still run if you move to WSL): installs DejaVu + Liberation font families so KiCad and other GTK apps render with good fonts instead of the default Droid Sans fallback |
 | `install_blesh` | Builds and installs [ble.sh](https://github.com/akinomyoga/ble.sh) (Bash Line Editor - fish/zsh-like syntax highlighting, autosuggestions, vim-mode editing for bash) from git source, sources it from `~/.bashrc` |
-| `install_win32yank` | WSL only: installs [`win32yank.exe`](https://github.com/equalsraf/win32yank) to `~/.local/bin` so tmux and nvim can read/write the real Windows clipboard (see "Shared clipboard" section below) |
-| `fix_wsl_interop_persistence` | WSL only: adds a `[boot] command=` line to `/etc/wsl.conf` that re-registers the `WSLInterop` binfmt_misc entry on every boot. Fedora's WSL image ships with `systemd=true`, and systemd's own binfmt handling can wipe out WSL's private `WSLInterop` registration during boot, breaking every `.exe` call (`win32yank.exe`, `clip.exe`, `powershell.exe`, ...) with "cannot execute binary file". Also applies the fix immediately so the current boot doesn't need a restart. |
+| `install_win32yank` | WSL only (via `run_migration_if_wsl`, stays unapplied off WSL): installs [`win32yank.exe`](https://github.com/equalsraf/win32yank) to `~/.local/bin` so tmux and nvim can read/write the real Windows clipboard (see "Shared clipboard" section below) |
+| `fix_wsl_interop_persistence` | WSL only (via `run_migration_if_wsl`, stays unapplied off WSL): adds a `[boot] command=` line to `/etc/wsl.conf` that re-registers the `WSLInterop` binfmt_misc entry on every boot. Fedora's WSL image ships with `systemd=true`, and systemd's own binfmt handling can wipe out WSL's private `WSLInterop` registration during boot, breaking every `.exe` call (`win32yank.exe`, `clip.exe`, `powershell.exe`, ...) with "cannot execute binary file". Also applies the fix immediately so the current boot doesn't need a restart. |
 | `bootstrap_nvim_plugins` | Runs `nvim --headless -c "luafile scripts/headless_bootstrap.lua"` to install every lazy.nvim plugin, treesitter parser, and Mason-managed LSP server/tool up front (using lazy.nvim's `sync({ wait = true })` API so it actually blocks until done), so the first interactive `nvim` launch is instant instead of installing plugins in the background |
 
 See `AGENTS.md` for the convention to follow when adding a new migration
@@ -162,6 +163,21 @@ passthrough gotcha that needed a small shell wrapper to work around.
 
 See [`docs/clipboard.md`](docs/clipboard.md) for the full architecture,
 the OSC 52/tmux-passthrough gotcha, and the `WSLInterop` persistence fix.
+
+The tmux half of this is **conditional on `win32yank.exe` actually existing**:
+`.tmux.conf` wraps its `copy-command`, its copy-mode `y` binding and its
+`pane-set-clipboard` hook in an `if-shell 'command -v win32yank.exe'`. Off
+WSL the binary is absent, and pointing those at it quietly broke copying to
+the *system* clipboard - tmux still filled its own paste buffer, so nothing
+looked wrong in the status line, but `set-clipboard on` made tmux swallow
+OSC 52 writes (e.g. the Copilot CLI's click-to-copy) into a buffer whose hook
+piped them into a missing executable, so the outer terminal never saw them.
+On non-WSL the config instead clears `copy-command`, drops the hook, sets
+`set-clipboard external` so OSC 52 passes straight through to the terminal,
+and rebinds `y` to `copy-selection-and-cancel` (tmux's own buffer). The
+`else` branch actively *clears* those settings rather than merely skipping
+them, because tmux server options and bindings survive a re-source - a stale
+WSL binding would otherwise persist across restarts and reloads.
 
 ## Windows setup (Alacritty + Nerd Font)
 
