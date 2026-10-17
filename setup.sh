@@ -36,6 +36,17 @@ run_migration() {
   fi
 }
 
+# Create a symlink, but only when it's missing or points at the wrong place,
+# so that re-running is a cheap no-op rather than an unconditional overwrite.
+ensure_symlink() {
+  local target="$1" link="$2"
+  mkdir -p "$(dirname "$link")"
+  if [ "$(readlink "$link" 2>/dev/null)" != "$target" ]; then
+    ln -sfn "$target" "$link"
+    echo "  (re)linked $link"
+  fi
+}
+
 # Migration 1: Install packages
 install_packages() {
   if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
@@ -63,24 +74,50 @@ install_cmake() {
 run_migration "install_cmake" install_cmake
 
 # Migration 2: Install TPM
+# Check for the clone rather than blind-cloning: `git clone ... || true`
+# swallowed every failure (including "already exists"), so if this directory
+# was ever removed the migration would log success without restoring it -
+# and install_tmux_plugins below hard-depends on this path under `set -e`,
+# so the whole setup run would then abort. Cloning TPM is idempotent-safe
+# only with an explicit existence check.
 install_tpm() {
-  git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm" || true
+  if [ -d "$HOME/.tmux/plugins/tpm/.git" ]; then
+    echo "TPM already present at $HOME/.tmux/plugins/tpm - skipping clone."
+    return
+  fi
+  mkdir -p "$HOME/.tmux/plugins"
+  rm -rf "$HOME/.tmux/plugins/tpm"
+  git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
 }
 run_migration "install_tpm" install_tpm
 
 # Migration 3: Symlink configs
+ensure_config_symlinks() {
+  ensure_symlink "$PWD/.tmux.conf" "$HOME/.tmux.conf"
+  ensure_symlink "$PWD/.bash_profile_yf" "$HOME/.bash_profile_yf"
+  ensure_symlink "$PWD/.blerc" "$HOME/.blerc"
+  ensure_symlink "$PWD/tmux-scripts" "$HOME/.tmux/scripts"
+  ensure_symlink "$PWD/copilot-instructions.md" "$HOME/.copilot/copilot-instructions.md"
+}
 link_configs() {
-  ln -sf "$PWD/.tmux.conf" "$HOME/.tmux.conf"
-  ln -sf "$PWD/.bash_profile_yf" "$HOME/.bash_profile_yf"
-  mkdir -p "$HOME/.tmux"
-  ln -sf "$PWD/tmux-scripts" "$HOME/.tmux/scripts"
-  mkdir -p "$HOME/.copilot"
-  ln -sf "$PWD/copilot-instructions.md" "$HOME/.copilot/copilot-instructions.md"
-  ln -sf "$PWD/.blerc" "$HOME/.blerc"
+  ensure_config_symlinks
 }
 run_migration "link_configs" link_configs
 
-# Migration 3.1: Install tmux plugins (tmux-sensible, tmux-which-key, etc.)
+# Migration 3.1: Repair config symlinks.
+# link_configs is guarded by the migration log, so it never re-runs once
+# applied - meaning if these symlinks are later deleted (a wiped ~/.tmux or
+# ~/.copilot, a distro upgrade, a re-clone of this repo at a new path) they
+# stay missing forever and setup.sh reports success. That failure is silent
+# and nasty: .tmux.conf's automatic-rename-format shells out to
+# ~/.tmux/scripts/window-name.sh, so a missing script just makes tmux fall
+# back to empty window names with nothing in the log or on screen.
+# Run unconditionally every time - ensure_symlink() is a no-op when the
+# links already point at the right place, so this only ever fixes drift.
+echo "Repairing config symlinks:"
+ensure_config_symlinks
+
+# Migration 3.2: Install tmux plugins (tmux-sensible, tmux-which-key, etc.)
 # via TPM's non-interactive installer. TPM resolves its plugin directory via
 # the TMUX_PLUGIN_MANAGER_PATH tmux global environment variable, which is
 # normally only set the first time tmux.conf's `run '~/.tmux/plugins/tpm/tpm'`
@@ -92,13 +129,23 @@ run_migration "link_configs" link_configs
 # standalone. If a server is already running (e.g. re-running setup.sh on an
 # already-configured machine), leave it untouched.
 install_tmux_plugins() {
+  # Guarded explicitly: the TPM path is a hard dependency of the installer
+  # below, and under `set -e` a missing file would abort the entire setup run
+  # with an opaque "No such file or directory". Warn and skip instead - the
+  # other migrations that follow are more valuable than aborting here.
+  local tpm_dir="$HOME/.tmux/plugins/tpm"
+  if [ ! -x "$tpm_dir/scripts/install_plugins.sh" ]; then
+    echo "WARNING: TPM not found at $tpm_dir - skipping tmux plugin install." >&2
+    echo "WARNING: install TPM, then run: $tpm_dir/scripts/install_plugins.sh" >&2
+    return
+  fi
   local started_temp_session=0
   if ! tmux info &>/dev/null; then
     tmux new-session -d -s __tpm_setup__
     started_temp_session=1
   fi
   tmux set-environment -g TMUX_PLUGIN_MANAGER_PATH "$HOME/.tmux/plugins/"
-  "$HOME/.tmux/plugins/tpm/scripts/install_plugins.sh"
+  "$tpm_dir/scripts/install_plugins.sh"
   if [ "$started_temp_session" -eq 1 ]; then
     tmux kill-session -t __tpm_setup__ 2>/dev/null || true
   fi
@@ -135,15 +182,25 @@ install_blesh() {
 }
 run_migration "install_blesh" install_blesh
 
+# Run a migration only on WSL. Off WSL it returns non-zero WITHOUT logging, so
+# the migration stays unapplied and will actually run if this machine ever
+# moves to WSL - previously these logged "applied" while having done nothing,
+# making them permanently inert on a later WSL setup.
+run_migration_if_wsl() {
+  local name="$1"
+  shift
+  if ! grep -qi microsoft /proc/version 2>/dev/null; then
+    echo "Migration $name skipped (not running under WSL) - stays unapplied, will run if moved to WSL."
+    return 0
+  fi
+  run_migration "$name" "$@"
+}
+
 # Migration: install win32yank.exe (only on WSL) so tmux and nvim can read
 # from and write to the real Windows clipboard. Runs as a native Windows
 # process via WSL's binfmt interop (no X server / wl-copy needed). Installed
 # to ~/.local/bin, which is already on PATH.
 install_win32yank() {
-  if ! grep -qi microsoft /proc/version 2>/dev/null; then
-    echo "Not running under WSL - skipping win32yank install (only relevant for WSL clipboard bridging)."
-    return
-  fi
   mkdir -p "$HOME/.local/bin"
   local tmp_dir
   tmp_dir=$(mktemp -d)
@@ -153,7 +210,7 @@ install_win32yank() {
   chmod +x "$HOME/.local/bin/win32yank.exe"
   rm -rf "$tmp_dir"
 }
-run_migration "install_win32yank" install_win32yank
+run_migration_if_wsl "install_win32yank" install_win32yank
 
 # Migration: persist the WSLInterop binfmt_misc registration across reboots
 # (WSL only). Fedora's WSL image ships with systemd=true by default, and
@@ -164,10 +221,6 @@ run_migration "install_win32yank" install_win32yank
 # Exec format error". WSL's [boot] command= option runs as root at every
 # boot (no systemd unit needed), so use that to re-register it every time.
 fix_wsl_interop_persistence() {
-  if ! grep -qi microsoft /proc/version 2>/dev/null; then
-    echo "Not running under WSL - skipping WSLInterop persistence fix."
-    return
-  fi
   local conf=/etc/wsl.conf
   sudo touch "$conf"
   local cmd_line='command="echo '"'"':WSLInterop:M::MZ::/init:PF'"'"' > /proc/sys/fs/binfmt_misc/register 2>/dev/null || true"'
@@ -184,7 +237,7 @@ fix_wsl_interop_persistence() {
   # Also apply immediately so the current boot doesn't need a restart.
   sudo bash -c "echo ':WSLInterop:M::MZ::/init:PF' > /proc/sys/fs/binfmt_misc/register" 2>/dev/null || true
 }
-run_migration "fix_wsl_interop_persistence" fix_wsl_interop_persistence
+run_migration_if_wsl "fix_wsl_interop_persistence" fix_wsl_interop_persistence
 
 #Migration 4.1
 install_build_essentials() {
@@ -262,9 +315,31 @@ configure_claude_statusline() {
     const fs = require("fs");
     const [settingsPath, scriptPath] = process.argv.slice(1);
     const settings = JSON.parse(fs.readFileSync(settingsPath, "utf8") || "{}");
-    if (settings.statusLine && settings.statusLine.command) {
-      console.log("statusLine.command already set (" + settings.statusLine.command + ") - leaving as-is");
-    } else {
+    const current = settings.statusLine && settings.statusLine.command;
+    // Repair the common failure modes rather than blindly leaving whatever is
+    // there. `statusLine.command` stores an ABSOLUTE path into this repo, so
+    // it silently breaks if the repo moves, and ~/.claude/settings.json can be
+    // deleted or rewritten by Claude Code itself. The previous "only set if
+    // unset" logic meant that once logged in ~/.yf_setup_migrationlog this
+    // migration never re-ran, so either case stayed broken forever while
+    // setup.sh reported success. Now we only defer to an existing command
+    // that still points at a real, executable script - i.e. a genuine
+    // customization made outside this repo.
+    if (current && current !== scriptPath) {
+      const target = current.split(" ")[0];
+      const isStaleRepoPath =
+        target.includes("/claude-scripts/statusline.sh") &&
+        target !== scriptPath;
+      if (!isStaleRepoPath && fs.existsSync(target)) {
+        console.log("statusLine.command already set to a valid external script (" + current + ") - leaving as-is");
+      } else if (isStaleRepoPath) {
+        settings.statusLine = { type: "command", command: scriptPath };
+        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + "\n");
+        console.log("Repaired stale statusLine.command -> " + scriptPath);
+      } else {
+        console.log("statusLine.command points at a missing script (" + current + ") - leaving as-is");
+      }
+    } else if (!current) {
       settings.statusLine = { type: "command", command: scriptPath };
       fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + "\n");
       console.log("Configured Claude Code statusLine.command -> " + scriptPath);
@@ -333,10 +408,6 @@ run_migration "install_lazygit" install_lazygit
 # compatible with Arial / Times New Roman / Courier New) instead of the
 # default Droid Sans fallback which looks poor in KiCad's UI.
 install_wsl_fonts() {
-  if ! grep -qi microsoft /proc/version 2>/dev/null; then
-    echo "Not running under WSL - skipping font install."
-    return
-  fi
   if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
     sudo apt install -y fonts-dejavu fonts-liberation
   elif [[ "$DISTRO" == "fedora" ]]; then
@@ -347,7 +418,7 @@ install_wsl_fonts() {
   fi
   fc-cache -f
 }
-run_migration "install_wsl_fonts" install_wsl_fonts
+run_migration_if_wsl "install_wsl_fonts" install_wsl_fonts
 
 # Migration: pre-install all nvim plugins (lazy.nvim), treesitter parsers,
 # and Mason-managed LSP servers/tools headlessly, so the first interactive
