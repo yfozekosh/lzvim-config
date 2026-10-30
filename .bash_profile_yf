@@ -569,7 +569,8 @@ alias la="ls -l -a"
 # (WSL [interop] appendWindowsPath isn't enabled) - bare "explorer.exe" /
 # "clip.exe" / "rider64.exe" would otherwise fail with "command not found".
 alias explorer="/mnt/c/Windows/explorer.exe"
-alias clip="/mnt/c/Windows/System32/clip.exe"
+alias clip="wl-copy"
 alias exp="/mnt/c/Windows/explorer.exe ."
 alias rider="/mnt/c/Users/FozekoshYurii/AppData/Local/Programs/Rider/bin/rider64.exe"
 export NODE_OPTIONS="--max-old-space-size=16192"
+export PATH="/home/yfozekosh/.local/opt/xpack-riscv-none-elf-gcc-15.2.0-1/bin:$PATH"
