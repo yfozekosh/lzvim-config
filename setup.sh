@@ -98,6 +98,7 @@ ensure_config_symlinks() {
   ensure_symlink "$PWD/.blerc" "$HOME/.blerc"
   ensure_symlink "$PWD/tmux-scripts" "$HOME/.tmux/scripts"
   ensure_symlink "$PWD/copilot-instructions.md" "$HOME/.copilot/copilot-instructions.md"
+  ensure_symlink "$PWD/asm-lsp/.asm-lsp.toml" "$HOME/.config/asm-lsp/.asm-lsp.toml"
 }
 link_configs() {
   ensure_config_symlinks
@@ -419,6 +420,90 @@ install_wsl_fonts() {
   fc-cache -f
 }
 run_migration_if_wsl "install_wsl_fonts" install_wsl_fonts
+
+# Migration: RISC-V assembly tooling.
+#
+# * asm-lsp (https://github.com/bergercookie/asm-lsp) is the only language
+#   server with RISC-V GAS instruction documentation (hover/completion/goto).
+#   Use the prebuilt x86_64 release when available and fall back to cargo on
+#   other architectures.
+# * rvfmt (https://github.com/mattfbacon/riscv-asm-fmt) is the only GAS/RISC-V
+#   formatter that preserves comments. Upstream's lexer rejects `$` in
+#   identifiers, which breaks the standard `__global_pointer$` symbol used by
+#   every RISC-V startup file, so build a pinned copy with
+#   patches/riscv-asm-fmt-dollar-symbol.patch applied.
+#
+# Both land in ~/.local/bin, which is already on PATH. Rust/cargo is only a
+# build dependency for rvfmt (and for asm-lsp on non-x86_64), not a language
+# setup for Rust development.
+RVFMT_COMMIT="9247d1b9d85ffb9e6e38a12e15f295b084e6014b"
+
+ensure_cargo() {
+  if command -v cargo >/dev/null 2>&1; then
+    return 0
+  fi
+  if [ -x "$HOME/.cargo/bin/cargo" ]; then
+    export PATH="$HOME/.cargo/bin:$PATH"
+    return 0
+  fi
+  if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
+    sudo apt update
+    sudo apt install -y cargo
+  elif [[ "$DISTRO" == "fedora" ]]; then
+    sudo dnf install -y cargo
+  else
+    echo "WARNING: cannot install cargo on unsupported distro '$DISTRO'." >&2
+    return 1
+  fi
+}
+
+install_riscv_asm_tools() {
+  local bin_dir="$HOME/.local/bin"
+  mkdir -p "$bin_dir"
+  export PATH="$bin_dir:$PATH"
+
+  # asm-lsp
+  if ! command -v asm-lsp >/dev/null 2>&1 && [ ! -x "$bin_dir/asm-lsp" ]; then
+    if [[ "$(uname -m)" == "x86_64" ]]; then
+      local tmp
+      tmp=$(mktemp -d)
+      curl -fsSL -o "$tmp/asm-lsp.tar.gz" \
+        "https://github.com/bergercookie/asm-lsp/releases/download/v0.10.1/asm-lsp-x86_64-unknown-linux-gnu.tar.gz"
+      tar -xzf "$tmp/asm-lsp.tar.gz" -C "$tmp"
+      install -m 755 "$tmp/asm-lsp" "$bin_dir/asm-lsp"
+      rm -rf "$tmp"
+    elif ensure_cargo; then
+      cargo install --root "$HOME/.local" --version 0.10.1 asm-lsp
+    else
+      echo "WARNING: no prebuilt asm-lsp for $(uname -m) and cargo is unavailable - skipping asm-lsp." >&2
+    fi
+  fi
+
+  # rvfmt (patched to accept `$` in identifiers, e.g. __global_pointer$)
+  if ! command -v rvfmt >/dev/null 2>&1 && [ ! -x "$bin_dir/rvfmt" ]; then
+    if ensure_cargo; then
+      local tmp
+      tmp=$(mktemp -d)
+      if git clone https://github.com/mattfbacon/riscv-asm-fmt.git "$tmp/riscv-asm-fmt" \
+        && git -C "$tmp/riscv-asm-fmt" checkout --detach "$RVFMT_COMMIT" \
+        && git -C "$tmp/riscv-asm-fmt" apply "$PWD/patches/riscv-asm-fmt-dollar-symbol.patch"; then
+        (cd "$tmp/riscv-asm-fmt" && cargo install --path cli --root "$HOME/.local" --locked) \
+          || echo "WARNING: building rvfmt failed - RISC-V asm formatting is unavailable." >&2
+      else
+        echo "WARNING: could not prepare the rvfmt source tree (upstream changed?) - skipping rvfmt." >&2
+      fi
+      rm -rf "$tmp"
+    else
+      echo "WARNING: cargo is unavailable - skipping rvfmt." >&2
+    fi
+  fi
+
+  if [ ! -x "$bin_dir/asm-lsp" ] || [ ! -x "$bin_dir/rvfmt" ]; then
+    echo "WARNING: RISC-V asm tooling is incomplete - remove install_riscv_asm_tools from" >&2
+    echo "WARNING: ~/.yf_setup_migrationlog and re-run setup.sh to retry." >&2
+  fi
+}
+run_migration "install_riscv_asm_tools" install_riscv_asm_tools
 
 # Migration: pre-install all nvim plugins (lazy.nvim), treesitter parsers,
 # and Mason-managed LSP servers/tools headlessly, so the first interactive

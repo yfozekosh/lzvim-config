@@ -1,0 +1,15 @@
+# Global asm-lsp configuration. setup.sh symlinks this file to
+# ~/.config/asm-lsp/.asm-lsp.toml.
+#
+# The assembly in this setup is RISC-V GNU as, but asm-lsp otherwise defaults
+# to the host architecture (x86-64) and would not know any RISC-V instruction.
+[default_config]
+assembler = "gas"
+instruction_set = "riscv"
+
+[default_config.opts]
+# Do not fall back to the host `gcc` when a project has no
+# compile_commands.json/compile_flags.txt: it would reject every RISC-V
+# instruction as invalid. Projects that do provide a compilation database
+# still get real assembler diagnostics.
+default_diagnostics = false

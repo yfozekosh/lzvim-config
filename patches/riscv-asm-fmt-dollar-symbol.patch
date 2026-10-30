@@ -1,0 +1,13 @@
+diff --git a/lib/src/lib.rs b/lib/src/lib.rs
+index 6c031cb..09b22dc 100644
+--- a/lib/src/lib.rs
++++ b/lib/src/lib.rs
+@@ -52,7 +52,7 @@ enum Token {
+ 	// Both can be e.g., `2 - 3` or `2 + -3`.
+ 	#[regex("[-+]")]
+ 	MiddleOrRightOperator,
+-	#[regex(r"[a-zA-Z_][a-zA-Z0-9_.]*")] // Identifier.
++	#[regex(r"[a-zA-Z_][a-zA-Z0-9_.$]*")] // Identifier.
+ 	#[regex(r"0[bB][01]+")] // Binary number.
+ 	#[regex(r"0[xX][0-9a-fA-F]+")] // Hex number.
+ 	#[regex(r"[0-9]+[bf]?")] // Decimal number, 0-prefixed octal, and numeric label references.

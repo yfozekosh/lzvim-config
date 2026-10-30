@@ -3,6 +3,10 @@
 Deeper write-ups that would clutter `README.md` but are worth keeping around
 for future reference.
 
+- [`asm.md`](asm.md) - GNU as/RISC-V and ld-script support: tree-sitter
+  parsers and highlight queries, `asm-lsp` plus the local RISC-V
+  pseudo-instruction/register/CSR supplement, the patched `rvfmt` formatter,
+  and how to enable per-project compiler diagnostics.
 - [`clipboard.md`](clipboard.md) - how Alacritty + tmux + nvim + the Copilot
   CLI all share the real Windows clipboard on WSL (win32yank bridge, OSC 52
   interception, the tmux-passthrough gotcha, and the `WSLInterop`

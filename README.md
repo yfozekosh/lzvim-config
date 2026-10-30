@@ -9,6 +9,8 @@
 - [`setup.sh` details](#setupsh-details)
 - [Forked/vendored plugins (`plugin-forks/`)](#forkedvendored-plugins-plugin-forks)
 - [C# / Roslyn troubleshooting](#c--roslyn-troubleshooting)
+- [PlatformIO / clangd (C/C++)](#platformio--clangd-cc)
+- [Assembly & linker scripts](#assembly--linker-scripts)
 - [Shared clipboard (Alacritty + tmux + nvim, WSL)](#shared-clipboard-alacritty--tmux--nvim-wsl)
 - [Windows setup (Alacritty + Nerd Font)](#windows-setup-alacritty--nerd-font)
 - [Committing & pushing](#committing--pushing)
@@ -104,7 +106,7 @@ machine.
 | `install_packages` | Installs `tmux`, `git`, `gcc`, `neovim`, `bat` (+ build tools on Fedora) |
 | `install_cmake` | Installs `cmake` |
 | `install_tpm` | Clones the Tmux Plugin Manager (TPM) to `~/.tmux/plugins/tpm`, but only if it isn't already there (checks for the `.git` dir) - previously it blind-cloned with `\|\| true`, which swallowed every failure and could log success without restoring a deleted clone |
-| `link_configs` | Symlinks `.tmux.conf`, `.bash_profile_yf`, `.blerc` (ble.sh color/behavior tweaks), `tmux-scripts/` (as `~/.tmux/scripts`), and `copilot-instructions.md` (as `~/.copilot/copilot-instructions.md`) into place |
+| `link_configs` | Symlinks `.tmux.conf`, `.bash_profile_yf`, `.blerc` (ble.sh color/behavior tweaks), `tmux-scripts/` (as `~/.tmux/scripts`), `copilot-instructions.md` (as `~/.copilot/copilot-instructions.md`), and `asm-lsp/.asm-lsp.toml` (as `~/.config/asm-lsp/.asm-lsp.toml`) into place |
 | `repair_config_symlinks` | Re-creates any of those symlinks that are missing or point at the wrong path. Runs unconditionally on every `setup.sh` run (it is a no-op when the links are healthy) because `link_configs` is migration-log-guarded and so never re-runs - without this, a deleted `~/.tmux/scripts` silently breaks tmux window auto-naming, since `automatic-rename-format` shells out to `~/.tmux/scripts/window-name.sh` and tmux falls back to empty window names with no error |
 | `install_tmux_plugins` | Starts a throwaway tmux server/session if none is running, sets `TMUX_PLUGIN_MANAGER_PATH` explicitly, then runs TPM's non-interactive installer so tmux plugins (`tmux-sensible`, `tmux-which-key`) are installed without needing to press `prefix+I` (works standalone even before tmux.conf has ever been loaded by a live session) |
 | `bashrc_source` | Adds `source ~/.bash_profile_yf` to `~/.bashrc` |
@@ -121,6 +123,7 @@ machine.
 | `install_blesh` | Builds and installs [ble.sh](https://github.com/akinomyoga/ble.sh) (Bash Line Editor - fish/zsh-like syntax highlighting, autosuggestions, vim-mode editing for bash) from git source, sources it from `~/.bashrc` |
 | `install_win32yank` | WSL only (via `run_migration_if_wsl`, stays unapplied off WSL): installs [`win32yank.exe`](https://github.com/equalsraf/win32yank) to `~/.local/bin` so tmux and nvim can read/write the real Windows clipboard (see "Shared clipboard" section below) |
 | `fix_wsl_interop_persistence` | WSL only (via `run_migration_if_wsl`, stays unapplied off WSL): adds a `[boot] command=` line to `/etc/wsl.conf` that re-registers the `WSLInterop` binfmt_misc entry on every boot. Fedora's WSL image ships with `systemd=true`, and systemd's own binfmt handling can wipe out WSL's private `WSLInterop` registration during boot, breaking every `.exe` call (`win32yank.exe`, `clip.exe`, `powershell.exe`, ...) with "cannot execute binary file". Also applies the fix immediately so the current boot doesn't need a restart. |
+| `install_riscv_asm_tools` | Installs the RISC-V assembly LSP (`asm-lsp`: prebuilt x86_64 release, or built with cargo on other architectures) and formatter (`rvfmt` from `mattfbacon/riscv-asm-fmt`) into `~/.local/bin`. Installs `cargo` if needed (build dependency only) and builds `rvfmt` from a pinned commit with `patches/riscv-asm-fmt-dollar-symbol.patch`, because upstream rejects `$` in symbols such as `__global_pointer$` |
 | `bootstrap_nvim_plugins` | Runs `nvim --headless -c "luafile scripts/headless_bootstrap.lua"` to install every lazy.nvim plugin, treesitter parser, and Mason-managed LSP server/tool up front (using lazy.nvim's `sync({ wait = true })` API so it actually blocks until done), so the first interactive `nvim` launch is instant instead of installing plugins in the background |
 
 See `AGENTS.md` for the convention to follow when adding a new migration
@@ -147,6 +150,85 @@ See [`docs/dotnet-roslyn-troubleshooting.md`](docs/dotnet-roslyn-troubleshooting
 for the full breakdown of failure modes (including the Roslyn build daemon
 being a long-lived shared process that keeps a stale environment across
 nvim restarts) and how to diagnose them.
+
+## PlatformIO / clangd (C/C++)
+
+PlatformIO projects (CH32V003, ESP32, ...) are hard for the LSP out of the
+box, for two independent reasons:
+
+- clangd needs a `compile_commands.json`. Without one, every `#include` in
+  the project is reported as "file not found", and ch32fun's prototypes
+  disappear too, because they are guarded by `#if defined(__riscv)`.
+- PlatformIO hands the GCC toolchain WCH-specific RISC-V flags that clangd
+  cannot parse (`-march=rv32ecxw`, `-mabi=ilp32e`). clangd then aborts the
+  preamble with `unknown target CPU 'rv32ecxw'`, which loses *all* include
+  paths, even when the database is present.
+
+Both are handled:
+
+1. **Database generation** — `lua/config/autocmds.lua` maintains the
+   database. When a C/C++ buffer is opened in a project that has a
+   `platformio.ini` (searched upwards from the file) and
+   `compile_commands.json` is missing or older than `platformio.ini`, it
+   runs `pio run -t compiledb` asynchronously in the project root and
+   notifies on start and on finish. Saving `platformio.ini` re-runs it too. A
+   failure reports the tail of the build log once per session (so opening
+   more files in the same broken project does not respawn the build);
+   `:PlatformIOCompiledb` forces a regeneration for the current project.
+   Buffers under `.pio/`, unnamed buffers and non-C/C++ filetypes are
+   ignored, and a missing `pio` executable gives a single warning. clangd
+   watches the database and reloads it itself, so no LSP restart is needed.
+
+2. **Per-project `.clangd`** — kept in the firmware repo (not here), it
+   strips the flags clangd cannot parse and fakes the RISC-V predefines:
+
+   ```yaml
+   CompileFlags:
+     Remove:
+       - -march=*
+       - -mabi=*
+       - -msave-restore
+       - -msmall-data-limit=*
+     Add:
+       - -D__riscv
+       - -D__riscv__
+   ```
+
+Worth knowing:
+
+- **Starting a new project**: `pio init -b <board>` creates `src/`,
+  `include/`, `lib/`, `platformio.ini` and installs the platform/framework;
+  then edit the ini, copy a `.clangd` from an existing RISC-V project, and
+  add `compile_commands.json` to `.gitignore` (pio's generated `.gitignore`
+  only lists `.pio`). Opening a `.c`/`.cpp` file generates the database
+  automatically - no manual build step needed.
+- Only C/C++ filetypes are handled, because that is what LazyVim's clangd
+  extra attaches to. A sketch-only project (`.ino`, filetype `arduino`) gets
+  no LSP; add a `.cpp` file or use `:PlatformIOCompiledb`.
+- ESP32 (xtensa) projects are only partially supported: upstream clang has
+  no xtensa target, so clangd ignores `-mlongcalls` and friends and falls
+  back to the host triple, leaving some toolchain headers unresolved
+  (`machine/endian.h`). RISC-V-based targets (CH32V, ESP32-C/H) work with
+  the `.clangd` above. Don't copy that `.clangd` into an xtensa project - the
+  `-D__riscv` defines are wrong there.
+- `pio run -t compiledb` writes the database for one environment at a time,
+  so with a multi-env `platformio.ini` the last built env wins. The file is a
+  build artefact and belongs in `.gitignore`.
+- Neovim 0.12 no longer ships `:LspRestart` / `:LspInfo`. Restart the client
+  with `:lua vim.lsp.stop_client(vim.lsp.get_clients(), true)` followed by
+  `:e`, or `:checkhealth lsp`.
+
+## Assembly & linker scripts
+
+GNU assembler (including RISC-V) and GNU ld linker scripts get tree-sitter
+highlighting, an `asm-lsp` language server with a local supplement for
+RISC-V pseudo-instructions/registers/CSRs, and `rvfmt` formatting through
+conform.nvim. `.S` files are preprocessed by the C compiler, so `#include` /
+`#define` lines show up as comments.
+
+See [`docs/asm.md`](docs/asm.md) for the parser/query details, the RISC-V
+hover/completion supplement, the `rvfmt` patch, and how to enable compiler
+diagnostics per project.
 
 ## Shared clipboard (Alacritty + tmux + nvim, WSL)
 
