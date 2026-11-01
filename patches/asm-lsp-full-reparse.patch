@@ -1,0 +1,124 @@
+diff --git a/asm-lsp/handle.rs b/asm-lsp/handle.rs
+index 77c5952..b6c744a 100644
+--- a/asm-lsp/handle.rs
++++ b/asm-lsp/handle.rs
+@@ -1,4 +1,4 @@
+-use anyhow::{Result, anyhow};
++use anyhow::Result;
+ use compile_commands::{CompilationDatabase, SourceFile};
+ use log::{error, info, warn};
+ use lsp_server::{Connection, Message, Notification, Request, RequestId, Response};
+@@ -22,7 +22,7 @@ use crate::{
+     ServerStore, TreeEntry, UriConversion, apply_compile_cmd, get_comp_resp,
+     get_compile_cmd_for_req, get_default_compile_cmd, get_document_symbols, get_goto_def_resp,
+     get_hover_resp, get_ref_resp, get_sig_help_resp, get_word_from_pos_params, process_uri,
+-    send_empty_resp, text_doc_change_to_ts_edit,
++    send_empty_resp,
+ };
+ 
+ /// Handles `Request`s from the lsp client
+@@ -612,9 +612,22 @@ pub fn handle_did_open_text_document_notification(
+     );
+ }
+ 
+-/// Handles did change text document notifications
+-/// Edits are applied to `curr_doc` and `tree`, but `tree` is not
+-/// re-parsed
++/// Handles did change text document notifications.
++///
++/// The whole document is re-parsed instead of applying the incremental
++/// `content_changes` to the stored tree with `Tree::edit`.
++///
++/// `text_doc_change_to_ts_edit` computes the edit's byte offsets against the
++/// *already updated* document, while LSP ranges refer to the document as it
++/// was before the change. For edits that span lines and insert text with
++/// newlines, the resulting `InputEdit` therefore does not describe the tree
++/// it is applied to. The tree then contains nodes past the end of the new
++/// text and the next request panics in `Node::utf8_text` with
++/// `range end index N out of range for slice of length M`, which takes the
++/// whole language server down.
++///
++/// Assembly buffers are small, so a full re-parse is cheap and always leaves
++/// the tree consistent with the document text.
+ ///
+ /// # Errors
+ ///
+@@ -633,18 +646,10 @@ pub fn handle_did_change_text_document_notification(
+         .listen(DidChangeTextDocument::METHOD, &raw_params);
+ 
+     let uri = &params.text_document.uri;
+-    if let Some(ref mut doc) = doc_store.text_store.get_document(uri)
++    if let Some(doc) = doc_store.text_store.get_document(uri)
+         && let Some(tree_entry) = doc_store.tree_store.get_mut(uri)
+-        && let Some(ref mut curr_tree) = tree_entry.tree
+     {
+-        for change in &params.content_changes {
+-            match text_doc_change_to_ts_edit(change, doc) {
+-                Ok(edit) => curr_tree.edit(&edit),
+-                Err(e) => {
+-                    return Err(anyhow!("Bad edit info, failed to edit tree - Error: {e}"));
+-                }
+-            }
+-        }
++        tree_entry.tree = tree_entry.parser.parse(doc.get_content(None), None);
+     }
+ 
+     Ok(())
+diff --git a/asm-lsp/lsp.rs b/asm-lsp/lsp.rs
+index a3b65a7..16793b2 100644
+--- a/asm-lsp/lsp.rs
++++ b/asm-lsp/lsp.rs
+@@ -1074,7 +1074,7 @@ fn get_label_resp(word: &str, uri: &Uri, doc_store: &mut DocumentStore) -> Optio
+     if let Some(doc) = doc_store.text_store.get_document(uri) {
+         let curr_doc = doc.get_content(None).as_bytes();
+         if let Some(ref mut tree_entry) = doc_store.tree_store.get_mut(uri) {
+-            tree_entry.tree = tree_entry.parser.parse(curr_doc, tree_entry.tree.as_ref());
++            tree_entry.tree = tree_entry.parser.parse(curr_doc, None);
+             if let Some(ref tree) = tree_entry.tree {
+                 static QUERY_LABEL_DATA: LazyLock<tree_sitter::Query> = LazyLock::new(|| {
+                     tree_sitter::Query::new(
+@@ -1349,7 +1349,7 @@ pub fn get_comp_resp(
+     }
+ 
+     // TODO: filter register completions by width allowed by corresponding instruction
+-    tree_entry.tree = tree_entry.parser.parse(curr_doc, tree_entry.tree.as_ref());
++    tree_entry.tree = tree_entry.parser.parse(curr_doc, None);
+     if let Some(ref tree) = tree_entry.tree {
+         static QUERY_DIRECTIVE: LazyLock<tree_sitter::Query> = LazyLock::new(|| {
+             tree_sitter::Query::new(
+@@ -1588,7 +1588,7 @@ pub fn get_document_symbols(
+         LazyLock::new(|| tree_sitter_asm::language().id_for_node_kind("label", true));
+     static IDENT_KIND_ID: LazyLock<u16> =
+         LazyLock::new(|| tree_sitter_asm::language().id_for_node_kind("ident", true));
+-    tree_entry.tree = tree_entry.parser.parse(curr_doc, tree_entry.tree.as_ref());
++    tree_entry.tree = tree_entry.parser.parse(curr_doc, None);
+ 
+     tree_entry.tree.as_ref().map(|tree| {
+         let mut res: Vec<DocumentSymbol> = vec![];
+@@ -1620,7 +1620,7 @@ pub fn get_sig_help_resp(
+ ) -> Option<SignatureHelp> {
+     let cursor_line = params.text_document_position_params.position.line as usize;
+ 
+-    tree_entry.tree = tree_entry.parser.parse(curr_doc, tree_entry.tree.as_ref());
++    tree_entry.tree = tree_entry.parser.parse(curr_doc, None);
+     if let Some(ref tree) = tree_entry.tree {
+         // Instruction with any (including zero) argument(s)
+         static QUERY_INSTR_ANY_ARGS: LazyLock<tree_sitter::Query> = LazyLock::new(|| {
+@@ -1716,7 +1716,7 @@ pub fn get_goto_def_resp(
+     params: &GotoDefinitionParams,
+ ) -> Option<GotoDefinitionResponse> {
+     let doc = curr_doc.get_content(None).as_bytes();
+-    tree_entry.tree = tree_entry.parser.parse(doc, tree_entry.tree.as_ref());
++    tree_entry.tree = tree_entry.parser.parse(doc, None);
+ 
+     if let Some(ref tree) = tree_entry.tree {
+         static QUERY_LABEL: LazyLock<tree_sitter::Query> = LazyLock::new(|| {
+@@ -1770,7 +1770,7 @@ pub fn get_ref_resp(
+ ) -> Vec<Location> {
+     let mut refs: HashSet<Location> = HashSet::new();
+     let doc = curr_doc.get_content(None).as_bytes();
+-    tree_entry.tree = tree_entry.parser.parse(doc, tree_entry.tree.as_ref());
++    tree_entry.tree = tree_entry.parser.parse(doc, None);
+ 
+     if let Some(ref tree) = tree_entry.tree {
+         static QUERY_LABEL: LazyLock<tree_sitter::Query> = LazyLock::new(|| {

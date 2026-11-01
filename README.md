@@ -123,7 +123,7 @@ machine.
 | `install_blesh` | Builds and installs [ble.sh](https://github.com/akinomyoga/ble.sh) (Bash Line Editor - fish/zsh-like syntax highlighting, autosuggestions, vim-mode editing for bash) from git source, sources it from `~/.bashrc` |
 | `install_win32yank` | WSL only (via `run_migration_if_wsl`, stays unapplied off WSL): installs [`win32yank.exe`](https://github.com/equalsraf/win32yank) to `~/.local/bin` so tmux and nvim can read/write the real Windows clipboard (see "Shared clipboard" section below) |
 | `fix_wsl_interop_persistence` | WSL only (via `run_migration_if_wsl`, stays unapplied off WSL): adds a `[boot] command=` line to `/etc/wsl.conf` that re-registers the `WSLInterop` binfmt_misc entry on every boot. Fedora's WSL image ships with `systemd=true`, and systemd's own binfmt handling can wipe out WSL's private `WSLInterop` registration during boot, breaking every `.exe` call (`win32yank.exe`, `clip.exe`, `powershell.exe`, ...) with "cannot execute binary file". Also applies the fix immediately so the current boot doesn't need a restart. |
-| `install_riscv_asm_tools` | Installs the RISC-V assembly LSP (`asm-lsp`: prebuilt x86_64 release, or built with cargo on other architectures) and formatter (`rvfmt` from `mattfbacon/riscv-asm-fmt`) into `~/.local/bin`. Installs `cargo` if needed (build dependency only) and builds `rvfmt` from a pinned commit with `patches/riscv-asm-fmt-dollar-symbol.patch`, because upstream rejects `$` in symbols such as `__global_pointer$` |
+| `install_riscv_asm_tools` | Installs the RISC-V assembly LSP (`asm-lsp`) and formatter (`rvfmt` from `mattfbacon/riscv-asm-fmt`) into `~/.local/bin`, both built from pinned commits with `cargo`. `asm-lsp` gets `patches/asm-lsp-full-reparse.patch`: upstream 0.10.1 applies tree-sitter edits using offsets from the already-updated document, corrupts its tree on multi-line edits, and then panics and exits. `rvfmt` gets `patches/riscv-asm-fmt-dollar-symbol.patch`, because upstream rejects `$` in symbols such as `__global_pointer$`. Installs `cargo` if needed (build dependency only) |
 | `bootstrap_nvim_plugins` | Runs `nvim --headless -c "luafile scripts/headless_bootstrap.lua"` to install every lazy.nvim plugin, treesitter parser, and Mason-managed LSP server/tool up front (using lazy.nvim's `sync({ wait = true })` API so it actually blocks until done), so the first interactive `nvim` launch is instant instead of installing plugins in the background |
 
 See `AGENTS.md` for the convention to follow when adding a new migration
@@ -228,7 +228,9 @@ conform.nvim. `.S` files are preprocessed by the C compiler, so `#include` /
 
 See [`docs/asm.md`](docs/asm.md) for the parser/query details, the RISC-V
 hover/completion supplement, the `rvfmt` patch, and how to enable compiler
-diagnostics per project.
+diagnostics per project. If no compiler errors show up, `:RiscvAsmDoctor`
+prints which piece (project `.asm-lsp.toml`, compiler, or compile flags) is
+missing.
 
 ## Shared clipboard (Alacritty + tmux + nvim, WSL)
 

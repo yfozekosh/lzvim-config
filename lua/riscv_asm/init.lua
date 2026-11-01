@@ -333,6 +333,174 @@ function M.is_x86_asm(bufnr)
   return false
 end
 
+--- Reads the handful of asm-lsp options we care about. A full TOML parser
+--- isn't worth pulling in for these few keys.
+--- @param path string
+--- @return { compiler?: string, diagnostics?: boolean, default_diagnostics?: boolean, compile_flags_txt?: boolean }
+local function read_asm_lsp_config(path)
+  local out = {}
+  local ok, lines = pcall(vim.fn.readfile, path)
+  if not ok then
+    return out
+  end
+  for _, line in ipairs(lines) do
+    local key, value = line:match("^%s*([%w_]+)%s*=%s*(.+)$")
+    if key then
+      local str = value:match('^"(.-)"') or value:match("^'(.-)'")
+      if str then
+        out[key] = str
+      elseif value:match("^true") then
+        out[key] = true
+      elseif value:match("^false") then
+        out[key] = false
+      elseif value:match("^%[") then
+        -- Array options (compile_flags_txt); only their presence matters here.
+        out[key] = true
+      end
+    end
+  end
+  return out
+end
+
+--- @param start string
+--- @return string?
+local function find_asm_lsp_root(start)
+  local markers = { ".asm-lsp.toml", "compile_flags.txt", "compile_commands.json", ".git" }
+  local dir = start
+  while dir and dir ~= "" do
+    for _, marker in ipairs(markers) do
+      if vim.uv.fs_stat(vim.fs.joinpath(dir, marker)) then
+        return dir
+      end
+    end
+    local parent = vim.fs.dirname(dir)
+    if parent == dir then
+      break
+    end
+    dir = parent
+  end
+end
+
+--- Explains why asm-lsp is or isn't publishing compiler diagnostics.
+--- Exposed as `:RiscvAsmDoctor`. The most common cause is a missing
+--- project-local `.asm-lsp.toml` (with a `compiler` and `compile_flags_txt`)
+--- in the LSP root: with `default_diagnostics = false` in the global config,
+--- asm-lsp then has nothing to run.
+function M.doctor()
+  local lines = {}
+  local failed = false
+  local function report(ok, msg)
+    failed = failed or not ok
+    table.insert(lines, string.format("%s %s", ok and "OK" or "FAIL", msg))
+  end
+
+  local bufnr = vim.api.nvim_get_current_buf()
+  local ft = vim.bo[bufnr].filetype
+  report(
+    ft == "asm",
+    ("buffer filetype is %s%s"):format(ft ~= "" and ft or "<unset>", ft == "asm" and "" or " (expected asm)")
+  )
+  if ft == "asm" and M.is_x86_asm(bufnr) then
+    table.insert(lines, "INFO buffer looks like x86 assembly; the RISC-V extras and rvfmt are skipped")
+  end
+
+  local exe = vim.fn.exepath("asm-lsp")
+  report(exe ~= "", exe ~= "" and ("asm-lsp resolves to " .. exe) or "asm-lsp not found on PATH")
+
+  local client = vim.lsp.get_clients({ bufnr = bufnr, name = "asm_lsp" })[1]
+  if client then
+    report(true, ("asm_lsp attached (id=%d, root_dir=%s)"):format(client.id, client.config.root_dir or "<none>"))
+  else
+    report(false, "no asm_lsp client attached to this buffer")
+  end
+  table.insert(lines, ("INFO %d diagnostic(s) currently attached to this buffer"):format(#vim.diagnostic.get(bufnr)))
+
+  local root = client and client.config.root_dir
+  if not root then
+    local name = vim.api.nvim_buf_get_name(bufnr)
+    root = name ~= "" and find_asm_lsp_root(vim.fs.dirname(name)) or nil
+  end
+  if not root then
+    report(
+      false,
+      "no asm-lsp root found (no .asm-lsp.toml, compile_flags.txt, compile_commands.json or .git above this file)"
+    )
+  else
+    local project_cfg_path = vim.fs.joinpath(root, ".asm-lsp.toml")
+    local project_cfg = vim.uv.fs_stat(project_cfg_path) and read_asm_lsp_config(project_cfg_path) or nil
+
+    local config_home = vim.env.XDG_CONFIG_HOME
+    if not config_home or config_home == "" then
+      config_home = vim.fs.joinpath(vim.env.HOME or "~", ".config")
+    end
+    local global_cfg_path = vim.fs.joinpath(config_home, "asm-lsp", ".asm-lsp.toml")
+
+    -- A project config replaces the global one entirely in asm-lsp.
+    local cfg_path = project_cfg and project_cfg_path or global_cfg_path
+    local cfg = project_cfg or read_asm_lsp_config(global_cfg_path)
+    if project_cfg then
+      report(true, "project config: " .. project_cfg_path)
+    else
+      table.insert(lines, "INFO no project .asm-lsp.toml at the root; using " .. global_cfg_path)
+    end
+
+    if cfg.compiler then
+      report(
+        vim.fn.executable(cfg.compiler) == 1,
+        ("compiler `%s`%s (%s)"):format(
+          cfg.compiler,
+          vim.fn.executable(cfg.compiler) == 1 and " is executable" or " is not executable",
+          cfg_path
+        )
+      )
+    else
+      report(false, ("no `compiler` in %s; asm-lsp would fall back to the host gcc/clang"):format(cfg_path))
+    end
+
+    local db
+    for _, candidate in ipairs({
+      vim.fs.joinpath(root, "compile_commands.json"),
+      vim.fs.joinpath(root, "compile_flags.txt"),
+      vim.fs.joinpath(root, "build", "compile_commands.json"),
+      vim.fs.joinpath(root, "build", "compile_flags.txt"),
+    }) do
+      if vim.uv.fs_stat(candidate) then
+        db = candidate
+        break
+      end
+    end
+
+    if cfg.diagnostics == false then
+      report(false, "diagnostics are disabled in " .. cfg_path)
+    elseif cfg.compile_flags_txt then
+      report(true, "compile flags defined in " .. cfg_path)
+    elseif db then
+      report(true, "compile database: " .. db)
+    elseif cfg.default_diagnostics then
+      report(true, "no compile flags, but default_diagnostics = true; the compiler runs with its defaults")
+    else
+      report(
+        false,
+        "no compile_flags_txt in the config, no compile_flags.txt/compile_commands.json at the root "
+          .. "or in build/, and default_diagnostics is off"
+      )
+    end
+  end
+
+  table.insert(lines, "")
+  table.insert(
+    lines,
+    "asm-lsp publishes diagnostics only with a `compiler` in its effective config plus compile flags "
+      .. "(`compile_flags_txt` or a compile_flags.txt/compile_commands.json) "
+      .. "or `default_diagnostics = true`. See docs/asm.md."
+  )
+  vim.notify(
+    table.concat(lines, "\n"),
+    failed and vim.log.levels.WARN or vim.log.levels.INFO,
+    { title = "RiscvAsmDoctor" }
+  )
+end
+
 local function completion_item_kind()
   local ok, types = pcall(require, "blink.cmp.types")
   return ok and types.CompletionItemKind or vim.lsp.protocol.CompletionItemKind

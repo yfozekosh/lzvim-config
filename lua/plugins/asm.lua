@@ -28,12 +28,21 @@ return {
   },
   {
     "neovim/nvim-lspconfig",
+    init = function()
+      vim.api.nvim_create_user_command("RiscvAsmDoctor", function()
+        require("riscv_asm").doctor()
+      end, { desc = "Explain why RISC-V asm-lsp has (or has not) any diagnostics" })
+    end,
     opts = {
       servers = {
         -- Installed into ~/.local/bin by setup.sh's install_riscv_asm_tools
         -- migration; don't let Mason build a second copy.
         asm_lsp = {
           mason = false,
+          -- asm-lsp only finds a compilation database at its root, so treat
+          -- the database files as root markers too. Without one it cannot
+          -- run a compiler and will publish no diagnostics.
+          root_markers = { ".asm-lsp.toml", "compile_flags.txt", "compile_commands.json", ".git" },
           keys = {
             {
               "K",

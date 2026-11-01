@@ -46,6 +46,54 @@ falls back to asm-lsp's hover for real instructions. blink.cmp gets the same
 entries through the `riscv_asm` source, scoped to the `asm` filetype. Like
 the formatter, it skips buffers that look like x86 assembly.
 
+### Diagnostics (compiler errors)
+
+asm-lsp has no parser-based error checking: diagnostics come from running a
+real compiler/assembler on the file and parsing its stderr. Neovim 0.12
+requests them as pull diagnostics, so they refresh while you type rather
+than only on `:w`.
+
+By default the plugin config leaves `default_diagnostics = false`, because
+falling back to the host `gcc` would reject every RISC-V mnemonic. A file
+therefore gets no diagnostics until its project has an `.asm-lsp.toml` in the
+LSP root that names a RISC-V `compiler` and the compile flags. A project
+config replaces the global one, so repeat `assembler` and `instruction_set`.
+For example, for the CH32V003 (RV32EC) assembly projects:
+
+```toml
+# .asm-lsp.toml in the project root
+[default_config]
+assembler = "gas"
+instruction_set = "riscv"
+
+[default_config.opts]
+compiler = "riscv-none-elf-gcc"
+compile_flags_txt = [
+  "-march=rv32ec",
+  "-mabi=ilp32e",
+  "-c",
+  "-o",
+  "/dev/null",
+]
+```
+
+`-c -o /dev/null` stops GCC from trying to link (asm-lsp only type-checks the
+file); `-fsyntax-only` works too. asm-lsp also accepts flags from a
+`compile_flags.txt` or `compile_commands.json` in the LSP root instead of
+`compile_flags_txt`, but those files are shared with clangd: `-march=rv32ec`
+without a RISC-V `--target` makes clangd fail on C files in the same tree, so
+prefer `compile_flags_txt` in mixed C/asm projects.
+
+The LSP root is the nearest directory with `.asm-lsp.toml`, `.git`,
+`compile_flags.txt` or `compile_commands.json` (the database files are extra
+root markers in `lua/plugins/asm.lua`). Run `:RiscvAsmDoctor` in a buffer to
+see which piece is missing, which config is in effect, and whether the
+compiler and flags are found. The equivalent manual check is:
+
+```sh
+riscv-none-elf-gcc -march=rv32ec -mabi=ilp32e -c -o /dev/null boot.s
+```
+
 ### Formatter: rvfmt
 
 `rvfmt` ([riscv-asm-fmt](https://github.com/mattfbacon/riscv-asm-fmt)) runs
@@ -66,34 +114,7 @@ linker symbol.
 - `rvfmt` does not understand GAS macro parameters (`\arg`); on a `.macro`
   body that uses them it exits with an error and the buffer is left
   unchanged. Format those files manually or disable autoformat for them.
-- `asm-lsp` has no parser-based error checking: its diagnostics come from
-  running a real assembler and parsing stderr. The implicit host
-  `gcc`/`clang` fallback is disabled (`default_diagnostics = false`) because
-  the host compiler rejects every RISC-V mnemonic. To get compiler errors,
-  provide `compile_flags.txt` (or `compile_commands.json`) at the LSP root
-  and a project-local `.asm-lsp.toml` naming the cross compiler. For the
-  CH32V003 projects, for example:
-
-  ```toml
-  # .asm-lsp.toml in the project root
-  [default_config]
-  assembler = "gas"
-  instruction_set = "riscv"
-
-  [default_config.opts]
-  compiler = "riscv-none-elf-gcc"
-  ```
-
-  ```text
-  # compile_flags.txt in the project root
-  -march=rv32ec
-  -mabi=ilp32e
-  -c
-  -o
-  /dev/null
-  ```
-
-  A project-local `.asm-lsp.toml` replaces the global config, so repeat
-  `assembler`/`instruction_set` there. Without `compiler`, asm-lsp falls back
-  to the host `gcc`/`clang` when applying `compile_flags.txt`, which
-  mis-reports RISC-V instructions.
+- If no compiler errors show up, run `:RiscvAsmDoctor`; the project needs a
+  `.asm-lsp.toml` with a `compiler` and `compile_flags_txt` (or a
+  `compile_flags.txt`/`compile_commands.json`) at the LSP root. See
+  [Diagnostics](#diagnostics-compiler-errors).

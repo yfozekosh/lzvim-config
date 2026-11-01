@@ -425,8 +425,10 @@ run_migration_if_wsl "install_wsl_fonts" install_wsl_fonts
 #
 # * asm-lsp (https://github.com/bergercookie/asm-lsp) is the only language
 #   server with RISC-V GAS instruction documentation (hover/completion/goto).
-#   Use the prebuilt x86_64 release when available and fall back to cargo on
-#   other architectures.
+#   Build a pinned copy with patches/asm-lsp-full-reparse.patch applied: the
+#   released 0.10.1 applies incremental tree-sitter edits using offsets
+#   computed from the already-updated document, so multi-line edits corrupt
+#   the tree and the server panics (and exits) on the next request.
 # * rvfmt (https://github.com/mattfbacon/riscv-asm-fmt) is the only GAS/RISC-V
 #   formatter that preserves comments. Upstream's lexer rejects `$` in
 #   identifiers, which breaks the standard `__global_pointer$` symbol used by
@@ -434,8 +436,9 @@ run_migration_if_wsl "install_wsl_fonts" install_wsl_fonts
 #   patches/riscv-asm-fmt-dollar-symbol.patch applied.
 #
 # Both land in ~/.local/bin, which is already on PATH. Rust/cargo is only a
-# build dependency for rvfmt (and for asm-lsp on non-x86_64), not a language
-# setup for Rust development.
+# build dependency for these two tools, not a language setup for Rust
+# development.
+ASMLSP_COMMIT="bacbe5eedfbfc202afe8f517faef2d5b9152bf95"
 RVFMT_COMMIT="9247d1b9d85ffb9e6e38a12e15f295b084e6014b"
 
 ensure_cargo() {
@@ -462,20 +465,23 @@ install_riscv_asm_tools() {
   mkdir -p "$bin_dir"
   export PATH="$bin_dir:$PATH"
 
-  # asm-lsp
+  # asm-lsp (built from source: patches/asm-lsp-full-reparse.patch fixes an
+  # upstream panic that kills the server after multi-line edits)
   if ! command -v asm-lsp >/dev/null 2>&1 && [ ! -x "$bin_dir/asm-lsp" ]; then
-    if [[ "$(uname -m)" == "x86_64" ]]; then
+    if ensure_cargo; then
       local tmp
       tmp=$(mktemp -d)
-      curl -fsSL -o "$tmp/asm-lsp.tar.gz" \
-        "https://github.com/bergercookie/asm-lsp/releases/download/v0.10.1/asm-lsp-x86_64-unknown-linux-gnu.tar.gz"
-      tar -xzf "$tmp/asm-lsp.tar.gz" -C "$tmp"
-      install -m 755 "$tmp/asm-lsp" "$bin_dir/asm-lsp"
+      if git clone https://github.com/bergercookie/asm-lsp.git "$tmp/asm-lsp" \
+        && git -C "$tmp/asm-lsp" checkout --detach "$ASMLSP_COMMIT" \
+        && git -C "$tmp/asm-lsp" apply "$PWD/patches/asm-lsp-full-reparse.patch"; then
+        (cd "$tmp/asm-lsp" && cargo install --path asm-lsp --root "$HOME/.local" --locked) \
+          || echo "WARNING: building asm-lsp failed - RISC-V asm hover/completion is unavailable." >&2
+      else
+        echo "WARNING: could not prepare the asm-lsp source tree (upstream changed?) - skipping asm-lsp." >&2
+      fi
       rm -rf "$tmp"
-    elif ensure_cargo; then
-      cargo install --root "$HOME/.local" --version 0.10.1 asm-lsp
     else
-      echo "WARNING: no prebuilt asm-lsp for $(uname -m) and cargo is unavailable - skipping asm-lsp." >&2
+      echo "WARNING: cargo is unavailable - skipping asm-lsp." >&2
     fi
   fi
 

@@ -8,8 +8,9 @@ assembler = "gas"
 instruction_set = "riscv"
 
 [default_config.opts]
-# Do not fall back to the host `gcc` when a project has no
-# compile_commands.json/compile_flags.txt: it would reject every RISC-V
-# instruction as invalid. Projects that do provide a compilation database
-# still get real assembler diagnostics.
+# Do not fall back to the host `gcc` when a project has no compiler flags:
+# it would reject every RISC-V instruction as invalid. Projects get real
+# assembler diagnostics from their own .asm-lsp.toml, which names a RISC-V
+# `compiler` and either `compile_flags_txt` or a compilation database. Run
+# :RiscvAsmDoctor in Neovim to see what is missing.
 default_diagnostics = false
