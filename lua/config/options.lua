@@ -4,7 +4,7 @@
 
 vim.g.root_spec = { "cwd" }
 vim.g.autoformat = false
-vim.g.lazyvim_disable_animations = true
+vim.g.snacks_animate = false
 
 -- WSL clipboard bridge: use win32yank.exe (installed by setup.sh's
 -- install_win32yank migration) so nvim yank/paste share the real Windows
