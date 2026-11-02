@@ -33,24 +33,12 @@ vim.keymap.set("i", "<Tab>", function()
   return require("copilot.suggestion").accept() or "\t"
 end, { expr = true, desc = "Accept Copilot suggestion" })
 
--- In insert mode, <C-Space> triggers nvim-cmp completion menu
-vim.keymap.set("i", "<C-Space>", function()
-  local cmp = require("cmp")
-  if not cmp.visible() then
-    cmp.complete()
-  end
-end, { desc = "Trigger completion menu (nvim-cmp)" })
-
 -- Visual mode: reselect entire buffer (just make sure entire buffer is selected)
 vim.keymap.set("v", "<C-a>", "<Esc>ggVG", { desc = "Select All (Visual)" })
 
 vim.keymap.set("n", "<F11>", function()
   vim.lsp.buf.code_action()
 end, { desc = "Quick fix", noremap = true, silent = true })
-
-vim.api.nvim_create_user_command("Db", function()
-  require("dbee").open()
-end, {})
 
 require("config.ComplexKeymaps.dotnet-build")
 require("config.ComplexKeymaps.dotnet-format")

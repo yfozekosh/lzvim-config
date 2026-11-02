@@ -46,7 +46,6 @@ require("lazy").setup({
       disabled_plugins = {
         "gzip",
         "matchit",
-        "matchparen",
         "netrwPlugin",
         "tarPlugin",
         "tohtml",
@@ -57,18 +56,10 @@ require("lazy").setup({
   },
 })
 
--- Custom: Load LuaSnip postfix snippets
-local has_luasnip, luasnip = pcall(require, "luasnip")
-if has_luasnip then
-  pcall(require, "snippets.postfix")
-end
-
 require("mason").setup({
   registries = {
     "github:mason-org/mason-registry",
-    "github:Crashdummyy/mason-registry",
   },
 })
 
 require("config.colors")
-require("config.racket")

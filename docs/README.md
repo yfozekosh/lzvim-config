@@ -11,8 +11,9 @@ for future reference.
   CLI all share the real Windows clipboard on WSL (win32yank bridge, OSC 52
   interception, the tmux-passthrough gotcha, and the `WSLInterop`
   binfmt_misc persistence fix).
-- [`plugin-forks.md`](plugin-forks.md) - what's in `plugin-forks/`, what
-  each fork is based on and why, including nvim-dbee's WSL build step.
+- [`plugin-forks.md`](plugin-forks.md) - what's vendored in `plugin-forks/`
+  and `app-forks/`, what each is based on, and which local patches it
+  carries.
 - [`dotnet-roslyn-troubleshooting.md`](dotnet-roslyn-troubleshooting.md) -
   why C# LSP features (go-to-definition, workspace symbols) can silently
   return nothing: stale `PATH`/`DOTNET_ROOT`, the shared long-lived Roslyn

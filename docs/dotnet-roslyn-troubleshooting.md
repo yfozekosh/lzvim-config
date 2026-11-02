@@ -88,7 +88,8 @@ two things so these failures aren't silently buried in `:LspLog` again:
 - **`:RoslynDoctor`** - a synchronous command that checks: `dotnet` resolves
   and its version, whether `DOTNET_ROOT`/`nugetPAT` are set, whether a
   `roslyn` client is attached to the current buffer, and whether the Mason
-  `roslyn` package is installed. Run it any time C# LSP features seem off.
+  `roslyn-language-server` package is installed. Run it any time C# LSP
+  features seem off.
 - **Automatic `vim.notify`** - the plugin wraps Roslyn's `window/logMessage`
   handler. Project-load failures (`Error while loading ...` /
   `Unauthorized`) are classified against known patterns (SDK not found,

@@ -2,9 +2,6 @@
 -- (No auto inline/ghost suggestions while typing)
 
 return {
-  -- Ensure copilot-cmp is disabled if you only want inline (not in cmp)
-  { "zbirenbaum/copilot-cmp", enabled = false },
-
   -- Main copilot.nvim config
   {
     "zbirenbaum/copilot.lua",

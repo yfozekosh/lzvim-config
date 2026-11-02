@@ -1,28 +1,34 @@
-# Forked/vendored plugins (`plugin-forks/`)
+# Forked/vendored code (`plugin-forks/` and `app-forks/`)
 
-`plugin-forks/` holds plugin source vendored directly into this repo (via
-`dir = ...` in the corresponding `lua/plugins/*.lua` spec, not lazy.nvim's
-normal git-clone-from-a-remote flow) instead of being pulled from upstream.
-This is used either to patch/extend an existing plugin, or for small
-fully custom plugins that aren't published anywhere.
+Both directories hold third-party code copied into this repo instead of being
+pulled from a remote. They are plain source trees — no `.git` directory and no
+upstream remote — so updating one means re-copying the upstream source and
+re-applying any local patches listed below.
 
-| Fork | Loaded from | Based on | Why it's vendored here |
+## `plugin-forks/`
+
+Lua plugins vendored here are loaded with `dir = ...` in a `lua/plugins/*.lua`
+spec rather than lazy.nvim's normal git-clone flow.
+
+| Fork | Loaded from | Based on | Why it's vendored |
 |---|---|---|---|
-| `nvim-dbee` | `lua/plugins/dbee.lua` | [kndndrj/nvim-dbee](https://github.com/kndndrj/nvim-dbee) | Adds Azure AD/SQL authentication support (see its `AZURE_SQL_AUTH.md`) and a Go-based install method; on WSL its backend needs to be built as a native Windows binary (see [build instructions](#building-nvim-dbee-for-wsl-users) below). Currently `enabled = false`. |
-| `dotbee` | `lua/plugins/dotnet-msg-test.lua` | custom, not based on an upstream plugin | Early/WIP experiment for a floating UI to surface .NET debug messages. Currently `enabled = false`, mostly stubbed out (`vim.notify` placeholders). |
-| `neotest` | `lua/plugins/test.lua` | [nvim-neotest/neotest](https://github.com/nvim-neotest/neotest) | Vendored copy used together with the `neotest-dotnet` fork below; actively used (`lazy = false`). |
-| `neotest-dotnet` | `lua/plugins/test.lua` | [Issafalcon/neotest-dotnet](https://github.com/Issafalcon/neotest-dotnet) | Vendored copy of the neotest .NET adapter; actively used (`lazy = false`). |
 | `last-file-rec` | `lua/plugins/last-file-recorder.lua` | custom, not based on an upstream plugin | Small plugin that records the last real (non-`term://`/`oil://`/etc.) file buffer opened, to `stdpath("cache")/last_file.txt`. Actively used (`lazy = false`). |
 
-## Building nvim-dbee (for WSL users)
+## `app-forks/`
 
-If you're using WSL, the dbee backend needs to be built and run on Windows due to Azure authentication requirements. A build script is provided in `plugin-forks/nvim-dbee/build-for-wsl.sh`.
+Non-plugin tools and scripts used by the shell/tmux setup.
 
-To build the dbee backend:
+| Item | Used by | Based on | Notes |
+|---|---|---|---|
+| `tmux-mem-cpu-load` | `.tmux.conf` status-right; built and installed by `setup.sh` (`install_tmux_mem_cpu_load`) | [thewtex/tmux-mem-cpu-load](https://github.com/thewtex/tmux-mem-cpu-load) v3.8.2 | Local edits in `common/powerline.cc` and `common/load.cc`. Built in place, so CMake artifacts (`CMakeCache.txt`, `CMakeFiles/`, binaries) are present in the directory. |
+| `spinner.sh` | `.bash_profile_yf` (`ask`/`codo` helpers) | Dave Eddy's `spinner.sh`; spinners from [sindresorhus/cli-spinners](https://github.com/sindresorhus/cli-spinners) | Executable, invoked as-is (MIT). |
 
-```bash
-cd plugin-forks/nvim-dbee
-./build-for-wsl.sh
-```
+## Removed forks
 
-**Note:** This script must be run manually. It builds the Windows executable and places it in `/mnt/c/__Projects/dbee.exe`.
+Removed in November 2026, along with their `lua/plugins/*.lua` specs and
+dependent configuration:
+
+- `nvim-dbee` — SQL client fork (Azure AD auth); was disabled.
+- `dotbee` — .NET debug-message UI experiment; was disabled and stubbed out.
+- `neotest` / `neotest-dotnet` — vendored test runner and .NET adapter; the
+  `lazyvim.plugins.extras.test.core` extra was disabled at the same time.

@@ -6,32 +6,19 @@
 -- * override the configuration of LazyVim plugins
 
 return {
-  -- add gruvbox
-  { "ellisonleao/gruvbox.nvim" },
-  { "nvim-mini/mini.animate", enabled = false },
-  -- { "Mofiqul/vscode.nvim", enabled = true },
-  -- { "johngrib/vim-game-snake" },
-  {"alec-gibson/nvim-tetris"},
-  {"shaunsingh/nord.nvim"},
+  { "shaunsingh/nord.nvim" },
 
-  -- Configure LazyVim to load gruvbox
+  -- Colorscheme. Root behaviour is set via vim.g.root_spec in config/options.lua.
   {
     "LazyVim/LazyVim",
     opts = {
       colorscheme = "nord",
-      -- colorscheme = "gruvbox",
-      opts = {
-        root = {
-          autochdir = false,
-          patters = {},
-        },
-      },
     },
   },
+
+  -- Not bundled with LazyVim 16, but config/ComplexKeymaps/comment-on-f2.lua
+  -- uses Comment.api for the <F2> mapping.
   {
     "numToStr/Comment.nvim",
-    opts = {
-      -- add any options here
-    },
   },
 }

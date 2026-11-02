@@ -173,9 +173,14 @@ function M.doctor()
   end
 
   local ok, registry = pcall(require, "mason-registry")
-  if ok and registry.has_package("roslyn") then
-    local pkg = registry.get_package("roslyn")
-    report(pkg:is_installed(), "Mason roslyn package installed")
+  if ok then
+    local name = "roslyn-language-server"
+    if registry.has_package(name) then
+      local pkg = registry.get_package(name)
+      report(pkg:is_installed(), "Mason " .. name .. " package installed")
+    else
+      report(false, "Mason " .. name .. " not found in registry")
+    end
   end
 
   vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO, { title = "RoslynDoctor" })

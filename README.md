@@ -7,7 +7,7 @@
   - [Quick start (Fedora, fresh machine)](#quick-start-fedora-fresh-machine)
   - [Manual steps](#manual-steps)
 - [`setup.sh` details](#setupsh-details)
-- [Forked/vendored plugins (`plugin-forks/`)](#forkedvendored-plugins-plugin-forks)
+- [Forked/vendored code (`plugin-forks/` and `app-forks/`)](#forkedvendored-code-plugin-forks-and-app-forks)
 - [C# / Roslyn troubleshooting](#c--roslyn-troubleshooting)
 - [PlatformIO / clangd (C/C++)](#platformio--clangd-cc)
 - [Assembly & linker scripts](#assembly--linker-scripts)
@@ -129,16 +129,17 @@ machine.
 See `AGENTS.md` for the convention to follow when adding a new migration
 (every migration must be documented here).
 
-## Forked/vendored plugins (`plugin-forks/`)
+## Forked/vendored code (`plugin-forks/` and `app-forks/`)
 
 See [`docs/plugin-forks.md`](docs/plugin-forks.md) for what's vendored in
-`plugin-forks/`, what each is based on, and why (including nvim-dbee's WSL
-build step).
+`plugin-forks/` and `app-forks/`, what each is based on, why it's vendored,
+and which local patches it carries.
 
 ## C# / Roslyn troubleshooting
 
 C# support is via `seblyng/roslyn.nvim` (`lua/plugins/roslyn.lua`), backed
-by a Roslyn language server that's installed and launched through Mason.
+by a Roslyn language server that's installed and launched through Mason
+(the `roslyn-language-server` NuGet package from the official registry).
 Its project loading depends on `dotnet`/`DOTNET_ROOT` being correct and, for
 projects using a private NuGet feed, a `nugetPAT` environment variable
 (exported from `~/.nugetPAT` in `.bashrc`). `lua/roslyn_diagnostics.lua`
