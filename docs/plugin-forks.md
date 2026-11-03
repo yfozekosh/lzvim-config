@@ -12,7 +12,7 @@ spec rather than lazy.nvim's normal git-clone flow.
 
 | Fork | Loaded from | Based on | Why it's vendored |
 |---|---|---|---|
-| `last-file-rec` | `lua/plugins/last-file-recorder.lua` | custom, not based on an upstream plugin | Small plugin that records the last real (non-`term://`/`oil://`/etc.) file buffer opened, to `stdpath("cache")/last_file.txt`. Actively used (`lazy = false`). |
+| `last-file-rec` | `lua/plugins/last-file-recorder.lua` | custom, not based on an upstream plugin | Small plugin that records the last real (non-`term://`/`oil://`/etc.) file buffer opened, to `stdpath("cache")/last_file.txt`. Actively used (loads on `VeryLazy`; writes the cache once on `VimLeavePre`). |
 
 ## `app-forks/`
 

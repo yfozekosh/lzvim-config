@@ -1,5 +1,3 @@
-local util = require("lspconfig.util")
-
 return {
   "seblyng/roslyn.nvim",
   ft = { "cs", "razor" },
@@ -28,7 +26,8 @@ return {
 
     -- Pass through any `vim.lsp.start` config here:
   },
-  lazy = false,
+  -- Loads on the first C#/Razor buffer; `lazy = false` must NOT be set here or
+  -- the whole plugin (and its ~90ms of startup work) loads on every launch.
   -- Auto-install the Roslyn language server via Mason on first load, so a
   -- fresh machine doesn't need a manual :MasonInstall. The official registry
   -- ships it as the NuGet package `roslyn-language-server`.

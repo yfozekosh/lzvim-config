@@ -17,8 +17,9 @@ return {
   },
 
   -- Not bundled with LazyVim 16, but config/ComplexKeymaps/comment-on-f2.lua
-  -- uses Comment.api for the <F2> mapping.
+  -- uses Comment.api for the <F2> mapping. Loaded on first <F2> press.
   {
     "numToStr/Comment.nvim",
+    lazy = true,
   },
 }

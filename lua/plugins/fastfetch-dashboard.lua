@@ -15,12 +15,15 @@ local function get_fastfetch(isLogo)
     return result
   end
 
-  result = runSh(shCommand)
+  local result = runSh(shCommand)
   -- More aggressive cleanup
   result = result:gsub("\27%[[%d;]*[ABCDEFGHJKSTfmnsulh]", "") -- Remove all ANSI sequences
   result = result:gsub("[\128-\255]", "") -- Remove all non-ASCII characters
 
-  local nvimVersion = runSh("nvim -v")
+  -- Was `io.popen("nvim -v")`, which spawns a second Neovim on every dashboard
+  -- render just to read the version.
+  local v = vim.version()
+  local nvimVersion = string.format("NVIM v%d.%d.%d", v.major, v.minor, v.patch)
 
   local maxWidth = 51
   local cropped_lines = {}

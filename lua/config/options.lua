@@ -6,6 +6,10 @@ vim.g.root_spec = { "cwd" }
 vim.g.autoformat = false
 vim.g.snacks_animate = false
 
+-- Don't persist state between sessions (command/search history, registers,
+-- marks, jumplist). Skips the ShaDa read at startup.
+vim.opt.shadafile = "NONE"
+
 -- WSL clipboard bridge: use win32yank.exe (installed by setup.sh's
 -- install_win32yank migration) so nvim yank/paste share the real Windows
 -- clipboard with Alacritty and tmux. Only applies under WSL and only if the

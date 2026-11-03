@@ -1,55 +1,59 @@
 local M = {}
 
+--- Remembers the last real (non-`term://`, `oil://`, ...) file buffer and
+--- writes it to `stdpath("cache")/last_file.txt` once on exit, instead of
+--- writing to disk on every buffer switch.
 function M.setup()
   local api = vim.api
   local fn = vim.fn
-  local Path = require("plenary.path")
 
-  local cache_path = Path:new(fn.stdpath("cache"), "last_file.txt")
+  local cache_path = fn.stdpath("cache") .. "/last_file.txt"
+  local frontend_indicators = { "package.json", "node_modules", "index.html" }
 
-  local function is_real_file(bufnr)
+  ---@param bufnr integer
+  ---@return string?
+  local function real_file(bufnr)
     if not api.nvim_buf_is_loaded(bufnr) then
-      return false
+      return nil
     end
 
     local name = api.nvim_buf_get_name(bufnr)
-    if name == "" then
-      return false
+    -- skip unnamed buffers and pseudo-buffers such as term://, oil://, fugitive://
+    if name == "" or name:match("^%a[%w+.-]*://") then
+      return nil
     end
 
-    -- ignore buffers like term://, oil://, etc.
-    if name:match("^[a-zA-Z]+://") then
-      return false
-    end
-
-    return fn.filereadable(name) == 1
+    return name
   end
 
-  local function write_last_file(bufnr)
-    bufnr = bufnr or api.nvim_get_current_buf()
-    if not is_real_file(bufnr) then
+  ---@param path string?
+  local function write_last_file(path)
+    if not path or fn.filereadable(path) == 0 then
       return
     end
 
-    cache_path:parent():mkdir({ parents = true })
-    cache_path:write(api.nvim_buf_get_name(bufnr) .. "\n", "w")
+    fn.mkdir(fn.fnamemodify(cache_path, ":h"), "p")
+    fn.writefile({ path }, cache_path)
   end
 
-  local group = api.nvim_create_augroup("LastFileCache", { clear = true })
+  -- Captured here because the initial buffer's BufEnter fires before this
+  -- plugin loads (it is loaded on VeryLazy).
+  local last_file = real_file(api.nvim_get_current_buf())
+  local checked_cwd = nil
 
-  local last_checked_cwd = nil
-  local frontend_indicators = { "package.json", "node_modules", "index.html" }
-  vim.api.nvim_create_autocmd("BufEnter", {
+  api.nvim_create_autocmd("BufEnter", {
     callback = function(args)
-      write_last_file(args.buf)
-      local cwd = vim.fn.getcwd()
-      if last_checked_cwd == cwd then
+      last_file = real_file(args.buf) or last_file
+
+      local cwd = fn.getcwd()
+      if cwd == checked_cwd then
         return
       end
-      last_checked_cwd = cwd
-      for _, file in ipairs(frontend_indicators) do
-        if vim.fn.filereadable(cwd .. "/" .. file) == 1 or vim.fn.isdirectory(cwd .. "/" .. file) == 1 then
-          vim.notify("Frontend project detected, setting catpuccin colorscheme", vim.log.levels.INFO)
+      checked_cwd = cwd
+
+      for _, marker in ipairs(frontend_indicators) do
+        if vim.uv.fs_stat(cwd .. "/" .. marker) then
+          vim.notify("Frontend project detected, setting catppuccin colorscheme", vim.log.levels.INFO)
           vim.schedule(function()
             vim.cmd("colorscheme catppuccin-frappe")
           end)
@@ -60,19 +64,18 @@ function M.setup()
   })
 
   api.nvim_create_autocmd("VimLeavePre", {
-    group = group,
     callback = function()
-      write_last_file()
+      write_last_file(last_file)
     end,
   })
 
   api.nvim_create_user_command("LastFile", function()
-    if not cache_path:exists() then
+    if vim.uv.fs_stat(cache_path) == nil then
       vim.notify("No last_file cache found", vim.log.levels.INFO)
       return
     end
 
-    local path = (cache_path:read() or ""):gsub("%s+$", "")
+    local path = (fn.readfile(cache_path)[1] or ""):gsub("%s+$", "")
     if path == "" then
       vim.notify("Cached last_file is empty", vim.log.levels.INFO)
       return
@@ -82,8 +85,8 @@ function M.setup()
   end, {})
 
   api.nvim_create_user_command("LastFileClear", function()
-    if cache_path:exists() then
-      cache_path:rm()
+    if vim.uv.fs_stat(cache_path) ~= nil then
+      fn.delete(cache_path)
       vim.notify("Cleared last_file cache", vim.log.levels.INFO)
     else
       vim.notify("No last_file cache to clear", vim.log.levels.INFO)
@@ -93,7 +96,7 @@ function M.setup()
   api.nvim_create_user_command("OpenAnyCsFile", function()
     -- Opens any C# file to trigger Roslyn loading
     local cwd = fn.getcwd()
-    local cs_files = vim.fn.globpath(cwd, "**/*.cs", false, true)
+    local cs_files = fn.globpath(cwd, "**/*.cs", false, true)
     if #cs_files == 0 then
       vim.notify("No C# files found in current directory", vim.log.levels.INFO)
       return

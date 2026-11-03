@@ -1,6 +1,10 @@
-local comment = require("Comment.api")
+local function get_comment()
+  require("lazy").load({ plugins = { "Comment.nvim" } })
+  return require("Comment.api")
+end
 
 local function toggle_comment_and_move_next()
+  local comment = get_comment()
   local mode = vim.fn.mode()
 
   if mode == "n" then

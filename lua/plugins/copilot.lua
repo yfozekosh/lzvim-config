@@ -5,6 +5,10 @@ return {
   -- Main copilot.nvim config
   {
     "zbirenbaum/copilot.lua",
+    -- Starting Copilot at launch costs ~100ms and spawns a language server
+    -- before it can possibly be used. Suggestions are manual-only, so load it
+    -- the first time insert mode is entered.
+    event = "InsertEnter",
     opts = {
       suggestion = {
         enabled = true,
