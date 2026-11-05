@@ -1,0 +1,42 @@
+out/firmware.elf:     file format elf32-littleriscv
+
+Disassembly of section .text:
+
+00000000 <_start>:
+_start():
+/home/proj/src/boot.s:13
+   0:	auipc	sp,0x20001
+   4:	addi	sp,sp,-2048
+/home/proj/src/boot.s:17
+   8:	lui	t0,0x40021
+
+0000009a <main>:
+main():
+/home/proj/src/test.c:6
+  9a:	addi	sp,sp,-8
+  9c:	sw	s0,0(sp)
+/home/proj/src/test.c:13 (discriminator 2)
+  a2:	lui	a5,0x20000
+  a6:	lw	a5,0(a5)
+/home/proj/src/test.c:12
+  aa:	addi	s0,s0,1
+/home/proj/src/test.c:13 (discriminator 2)
+  ac:	lw	a0,0(a5)
+  ae:	jal	b2 <delay>
+/home/proj/src/test.c:10
+  b0:	j	a2 <main+0x8>
+
+000000b2 <delay>:
+delay():
+/home/proj/src/delay.s:7
+  b2:	blez	a0,bc <delay+0xa>
+/home/proj/src/delay.s:10
+  b6:	addi	a0,a0,-4
+/home/proj/src/delay.s:11
+  b8:	bgtz	a0,b6 <delay+0x4>
+/home/proj/src/delay.s:14
+  bc:	ret
+
+000000be <no_debug>:
+  be:	nop
+  c0:	ret
