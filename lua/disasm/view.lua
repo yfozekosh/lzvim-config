@@ -49,7 +49,7 @@ function M.set_winbar(state)
     vim.wo[state.asm_win].winbar = ""
     return
   end
-  local name = state.elf and vim.fn.fnamemodify(state.elf, ":t") or "disassembly"
+  local name = state.elf and vim.fn.fnamemodify(state.elf, ":~:.") or "disassembly"
   local modified = false
   if win_valid(state.source_win) then
     modified = vim.bo[vim.api.nvim_win_get_buf(state.source_win)].modified
