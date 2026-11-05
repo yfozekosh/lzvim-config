@@ -4,6 +4,8 @@ Deeper write-ups that would clutter `README.md` but are worth keeping around
 for future reference.
 
 - [`asm.md`](asm.md) - GNU as/RISC-V and ld-script support: tree-sitter
+- [`disasm.md`](disasm.md) - split view of real ELF disassembly with C-line
+  highlighting via `objdump -l` markers
   parsers and highlight queries, `asm-lsp` plus the local RISC-V
   pseudo-instruction/register/CSR supplement, the patched `rvfmt` formatter,
   per-project compiler diagnostics, and `:RiscvAsmDoctor`.
