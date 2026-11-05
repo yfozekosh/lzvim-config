@@ -17,6 +17,10 @@ local state = {
   augroup = nil,
   warned_modified = {},
   warned_stale = false,
+  elf_mtime = nil,
+  elf_timer = nil,
+  elf_changed_notified = false,
+  refreshing = false,
 }
 
 function M.setup(opts)
@@ -38,6 +42,7 @@ function M.setup(opts)
       group = state.augroup,
       callback = function(ev)
         if state.asm_buf and ev.buf == state.asm_buf then
+          M.stop_elf_watch()
           state.asm_buf = nil
           state.asm_win = nil
           state.lines = {}
@@ -54,6 +59,68 @@ end
 
 local function notify(msg, level)
   vim.notify(msg, level or vim.log.levels.INFO, { title = "Disasm" })
+end
+
+local function elf_mtime_key(elf)
+  local st = vim.uv.fs_stat(elf)
+  if not st then
+    return nil
+  end
+  return tostring(st.mtime.sec) .. ":" .. tostring(st.mtime.nsec)
+end
+
+function M.stop_elf_watch()
+  if state.elf_timer then
+    pcall(function()
+      state.elf_timer:stop()
+      state.elf_timer:close()
+    end)
+    state.elf_timer = nil
+  end
+end
+
+function M.start_elf_watch()
+  M.stop_elf_watch()
+  local timer = vim.uv.new_timer()
+  state.elf_timer = timer
+  timer:start(1000, 1000, function()
+    vim.schedule(function()
+      if state.refreshing then
+        return
+      end
+      if not (state.elf and state.asm_win and vim.api.nvim_win_is_valid(state.asm_win)) then
+        return
+      end
+      local new_key = elf_mtime_key(state.elf)
+      if not new_key then
+        return
+      end
+      if state.elf_mtime == nil then
+        state.elf_mtime = new_key
+        return
+      end
+      if new_key == state.elf_mtime then
+        return
+      end
+      state.elf_mtime = new_key
+      vim.schedule(function()
+        if state.refreshing then
+          return
+        end
+        state.refreshing = true
+        if state.config.auto_refresh ~= false then
+          notify("ELF changed; refreshing disassembly.", vim.log.levels.INFO)
+          M.refresh()
+        else
+          if not state.elf_changed_notified then
+            state.elf_changed_notified = true
+            notify("ELF changed; run :DisasmRefresh to update.", vim.log.levels.WARN)
+          end
+        end
+        state.refreshing = false
+      end)
+    end)
+  end)
 end
 
 function M.open(elf_arg)
@@ -98,8 +165,10 @@ function M.open(elf_arg)
 end
 
 function M.open_with(elf)
+  state.refreshing = true
   local objdump_argv, candidates = config_mod.resolve_objdump(state.config)
   if not objdump_argv then
+    state.refreshing = false
     notify("objdump not found. Tried: " .. table.concat(candidates, ", ") .. "\nSet vim.g.disasm.objdump", vim.log.levels.ERROR)
     return
   end
@@ -109,6 +178,7 @@ function M.open_with(elf)
 
   local result = vim.system(argv, { text = true }):wait()
   if result.code ~= 0 then
+    state.refreshing = false
     notify("objdump failed:\n" .. (result.stderr or ""), vim.log.levels.ERROR)
     return
   end
@@ -127,11 +197,15 @@ function M.open_with(elf)
   state.has_markers = parsed.has_markers
   state.warned_modified = {}
   state.warned_stale = false
+  state.elf_changed_notified = false
+  state.elf_mtime = elf_mtime_key(elf)
 
   if not view.open(state) then
+    state.refreshing = false
     return
   end
   if not view.render(state) then
+    state.refreshing = false
     return
   end
 
@@ -139,8 +213,11 @@ function M.open_with(elf)
     notify("ELF has no debug line info; showing disassembly without line mapping.", vim.log.levels.WARN)
   end
 
+  M.stop_elf_watch()
+  M.start_elf_watch()
   M.check_stale()
   M.update_highlight()
+  state.refreshing = false
 end
 
 function M.refresh(elf_arg)
@@ -164,6 +241,7 @@ function M.toggle(elf_arg)
 end
 
 function M.close()
+  M.stop_elf_watch()
   view.close(state)
   state.asm_buf = nil
   state.asm_win = nil
@@ -173,6 +251,9 @@ function M.close()
   state.has_markers = false
   state.warned_modified = {}
   state.warned_stale = false
+  state.elf_mtime = nil
+  state.elf_changed_notified = false
+  state.refreshing = false
 end
 
 function M.check_stale()

@@ -27,6 +27,7 @@ vim.g.disasm = {
   auto_scroll = true,
   highlight = "Visual",               -- highlight group linked to DisasmMatch
   winbar = true,
+  auto_refresh = true,               -- refresh automatically when the ELF changes
 }
 ```
 
@@ -45,7 +46,9 @@ directory, its parent, and the current directory.
 ## Limitations
 
 - The ELF must be rebuilt after editing source; the plugin does not run
-  `make`. `:DisasmRefresh` reruns objdump only.
+  `make`. The split auto-refreshes when the ELF's mtime changes (polling
+  every second); `:DisasmRefresh` still reruns objdump manually.
+  Set `auto_refresh = false` to get a one-time warning instead.
 - Source files newer than the ELF produce a one-time warning; the mapping
   is still shown.
 - Unsaved source buffers may have shifted line numbers; a warning is shown

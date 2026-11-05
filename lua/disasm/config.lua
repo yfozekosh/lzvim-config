@@ -7,6 +7,7 @@ M.defaults = {
   auto_scroll = true,
   highlight = "Visual",
   winbar = true,
+  auto_refresh = true,
 }
 
 local OBJDUMP_CANDIDATES = {
