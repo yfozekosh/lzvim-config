@@ -233,6 +233,20 @@ diagnostics per project. If no compiler errors show up, `:RiscvAsmDoctor`
 prints which piece (project `.asm-lsp.toml`, compiler, or compile flags) is
 missing.
 
+## Disassembly view
+
+A split that shows the real disassembly of the project's ELF next to the
+source, using the ELF's own debug line table. Move the cursor on the C (or
+`.s`) side and every instruction attributed to that source line is
+highlighted in the asm split; the split scrolls to the first match. Uses
+`riscv-none-elf-objdump -d -l -C` (or whatever `vim.g.disasm.objdump`
+names) on the actual ELF, so it reflects optimizer output and linker layout.
+
+Commands: `:DisasmOpen [elf]`, `:DisasmClose`, `:DisasmToggle [elf]`,
+`:DisasmRefresh`. With no path, the ELF is auto-detected under `out/`,
+`build/`, or the project root. Configuration via `vim.g.disasm` (see
+[`docs/disasm.md`](docs/disasm.md)).
+
 ## Shared clipboard (Alacritty + tmux + nvim, WSL)
 
 On WSL, Alacritty runs as a native Windows process, but tmux and nvim run
