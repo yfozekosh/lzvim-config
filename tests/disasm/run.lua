@@ -127,6 +127,46 @@ test("function and section headers are kept", function()
   ok(not seen["/home/proj/src/test.c:13 (discriminator 2)"], "marker lines removed")
 end)
 
+local config = require("disasm.config")
+
+test("defaults", function()
+  local c = config.setup({})
+  eq(c.args, { "-d", "-l", "-C", "--no-show-raw-insn" }, "args")
+  eq(c.auto_scroll, true, "auto_scroll")
+end)
+
+test("string objdump", function()
+  local c = config.setup({ objdump = "cat" })
+  local argv = config.resolve_objdump(c)
+  eq(argv, { "cat" }, "argv")
+end)
+
+test("table objdump", function()
+  local c = config.setup({ objdump = { "sh", "-c" } })
+  local argv = config.resolve_objdump(c)
+  eq(argv, { "sh", "-c" }, "argv")
+end)
+
+test("resolver absolute", function()
+  local tmp = vim.fn.tempname()
+  vim.fn.writefile({ "x" }, tmp)
+  local elf = tmp .. ".elf"
+  local resolver = config.make_path_resolver(elf)
+  eq(resolver(tmp), vim.fs.normalize(tmp), "absolute path")
+  vim.fn.delete(tmp)
+end)
+
+test("resolver relative", function()
+  local tmp = vim.fn.tempname()
+  vim.fn.mkdir(tmp .. "/src", "p")
+  vim.fn.mkdir(tmp .. "/out", "p")
+  vim.fn.writefile({ "x" }, tmp .. "/src/x.c")
+  local elf = tmp .. "/out/f.elf"
+  local resolver = config.make_path_resolver(elf)
+  eq(resolver("src/x.c"), vim.fs.normalize(tmp .. "/src/x.c"), "relative path")
+  vim.fn.delete(tmp, "rf")
+end)
+
 print(string.format("\n%d/%d passed", test_count - fail_count, test_count))
 if fail_count > 0 then
   vim.cmd("cquit 1")
