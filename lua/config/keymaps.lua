@@ -26,6 +26,11 @@ end, { desc = "Quick fix", noremap = true, silent = true })
 
 require("config.ComplexKeymaps.dotnet-build")
 require("config.ComplexKeymaps.dotnet-format")
+require("config.ComplexKeymaps.build")
+
+vim.keymap.set("n", "<leader>cb", function()
+  require("config.ComplexKeymaps.build").run()
+end, { desc = "Build (make)", noremap = true, silent = true })
 
 vim.keymap.set("n", "<leader>fw", function()
   vim.notify(vim.fn.expand("%:p"))
