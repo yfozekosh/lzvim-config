@@ -7,7 +7,14 @@ return {
         -- Installed through mason-lspconfig.nvim (Mason package:
         -- autotools-language-server). It also attaches to Makefile.am and
         -- configure.ac, where it knows autoconf/automake constructs.
-        autotools_ls = {},
+        autotools_ls = {
+          -- autotools-language-server (lsp-tree-sitter) mishandles
+          -- incremental document edits: it computes Tree.edit() byte offsets
+          -- against the already-updated buffer, corrupting the syntax tree
+          -- and crashing the (Python) server on the next request. Force
+          -- full-document sync so the server always reparses from scratch.
+          flags = { allow_incremental_sync = false },
+        },
       },
     },
   },
