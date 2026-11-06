@@ -5,6 +5,25 @@
 -- with `vim.api.nvim_create_autocmd`
 --
 
+-- GNU ld linker scripts: make sure autoindent works even when the
+-- `linkerscript` treesitter parser is not installed yet. LazyVim only sets
+-- the treesitter indentexpr when `have("indents")` is true; otherwise it
+-- leaves the buffer with no indentexpr at all. Fall back to Neovim's built-in
+-- brace-counting indent (indent/ld.vim) in that case.
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "ld",
+  callback = function(ev)
+    local ok, ts = pcall(require, "lazyvim.util.treesitter")
+    if ok and ts.have and ts.have("ld", "indents") then
+      vim.bo[ev.buf].indentexpr = "v:lua.LazyVim.treesitter.indentexpr()"
+    elseif vim.fn.exists("*GetLDIndent") == 1 then
+      vim.bo[ev.buf].indentexpr = "GetLDIndent()"
+    end
+    vim.bo[ev.buf].indentkeys = "0{,0},!^F,o,O"
+  end,
+  desc = "Ensure autoindent for ld linker scripts",
+})
+
 -- Or remove existing autocmds by their group name (which is prefixed with `lazyvim_` for the defaults)
 -- e.g. vim.api.nvim_del_augroup_by_name("lazyvim_wrap_spell")
 

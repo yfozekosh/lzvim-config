@@ -61,8 +61,13 @@ return {
     opts = {
       formatters_by_ft = {
         asm = { "rvfmt" },
+        ld = { "ldformat" },
       },
       formatters = {
+        ldformat = {
+          command = "ld-format",
+          stdin = true,
+        },
         rvfmt = {
           command = "rvfmt",
           stdin = true,

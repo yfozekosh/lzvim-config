@@ -99,6 +99,7 @@ ensure_config_symlinks() {
   ensure_symlink "$PWD/tmux-scripts" "$HOME/.tmux/scripts"
   ensure_symlink "$PWD/copilot-instructions.md" "$HOME/.copilot/copilot-instructions.md"
   ensure_symlink "$PWD/asm-lsp/.asm-lsp.toml" "$HOME/.config/asm-lsp/.asm-lsp.toml"
+  ensure_symlink "$PWD/scripts/ld-format" "$HOME/.local/bin/ld-format"
 }
 link_configs() {
   ensure_config_symlinks

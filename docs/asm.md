@@ -103,6 +103,30 @@ and `<leader>cf` both work. `setup.sh` builds it from a pinned commit with
 `$` in identifiers and therefore fails on the standard `__global_pointer$`
 linker symbol.
 
+## Linker scripts (`ld`)
+
+GNU ld linker scripts (filetype `ld`, see `ftdetect/linker.lua` for the extra
+extensions) get tree-sitter highlighting, folding and indentation from the
+`linkerscript` parser, plus a small formatter.
+
+### Formatter: ld-format
+
+`ld-format` (`scripts/ld-format`, symlinked to `~/.local/bin/ld-format` by
+`setup.sh`) runs through `conform.nvim` for the `ld` filetype, so LazyVim's
+format-on-save and `<leader>cf` both work. It is a dependency-free Python 3
+helper (no Mason package) that:
+
+- strips trailing whitespace,
+- recomputes indentation from `{`/`}` nesting (2 spaces per level),
+- collapses runs of blank lines to a single blank line,
+- ensures the file ends with exactly one newline.
+
+C-style comments are preserved verbatim and do not contribute to brace
+counting. Only braces drive indentation, because `(` and `)` also appear in
+expressions. Autoindent while typing comes from the `linkerscript`
+tree-sitter indent query; if treesitter is unavailable, Neovim's built-in
+`indent/ld.vim` (brace counting) is used as a fallback.
+
 ## Notes
 
 - Autoformat is on by default (LazyVim's `vim.g.autoformat`). Disable it for

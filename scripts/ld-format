@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""Minimal formatter for GNU ld linker scripts.
+
+Reads the script from stdin and writes a normalized version to stdout.
+
+  * trailing whitespace stripped
+  * indentation recomputed from brace nesting (2 spaces per level)
+  * runs of blank lines collapsed to a single blank line
+  * file ends with exactly one newline
+
+Only `{`/`}` drive indentation. C-style comments are preserved verbatim but do
+not contribute to brace counting.
+"""
+import sys
+
+
+def strip_comments_for_counting(text):
+    out = []
+    i = 0
+    n = len(text)
+    in_block = False
+    while i < n:
+        if in_block:
+            if text[i:i + 2] == "*/":
+                in_block = False
+                i += 2
+                out.append(" ")
+            else:
+                out.append(" ")
+                i += 1
+        else:
+            if text[i:i + 2] == "/*":
+                in_block = True
+                out.append(" ")
+                i += 2
+            elif text[i:i + 2] == "//":
+                nl = text.find("\n", i)
+                if nl == -1:
+                    break
+                out.append(" " * (nl - i))
+                i = nl
+            else:
+                out.append(text[i])
+                i += 1
+    return "".join(out)
+
+
+def count_braces(line):
+    opens = 0
+    closes = 0
+    cleaned = strip_comments_for_counting(line)
+    for ch in cleaned:
+        if ch == "{":
+            opens += 1
+        elif ch == "}":
+            closes += 1
+    return opens, closes
+
+
+def format_ld(source):
+    lines = [ln.rstrip() for ln in source.splitlines()]
+
+    depth = 0
+    out = []
+    prev_blank = False
+    for ln in lines:
+        stripped = ln.strip()
+        if not stripped:
+            if prev_blank:
+                continue
+            out.append("")
+            prev_blank = True
+            continue
+        prev_blank = False
+
+        leading_close = 0
+        for ch in stripped:
+            if ch == "}":
+                leading_close += 1
+            else:
+                break
+
+        indent_level = depth - leading_close
+        if indent_level < 0:
+            indent_level = 0
+
+        out.append("  " * indent_level + stripped)
+
+        opens, closes = count_braces(stripped)
+        depth += opens - closes
+        if depth < 0:
+            depth = 0
+
+    while out and out[0] == "":
+        out.pop(0)
+    while out and out[-1] == "":
+        out.pop()
+
+    return "\n".join(out) + "\n"
+
+
+def main():
+    data = sys.stdin.read()
+    sys.stdout.write(format_ld(data))
+
+
+if __name__ == "__main__":
+    main()

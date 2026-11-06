@@ -106,7 +106,7 @@ machine.
 | `install_packages` | Installs `tmux`, `git`, `gcc`, `neovim`, `bat` (+ build tools on Fedora) |
 | `install_cmake` | Installs `cmake` |
 | `install_tpm` | Clones the Tmux Plugin Manager (TPM) to `~/.tmux/plugins/tpm`, but only if it isn't already there (checks for the `.git` dir) - previously it blind-cloned with `\|\| true`, which swallowed every failure and could log success without restoring a deleted clone |
-| `link_configs` | Symlinks `.tmux.conf`, `.bash_profile_yf`, `.blerc` (ble.sh color/behavior tweaks), `tmux-scripts/` (as `~/.tmux/scripts`), `copilot-instructions.md` (as `~/.copilot/copilot-instructions.md`), and `asm-lsp/.asm-lsp.toml` (as `~/.config/asm-lsp/.asm-lsp.toml`) into place |
+| `link_configs` | Symlinks `.tmux.conf`, `.bash_profile_yf`, `.blerc` (ble.sh color/behavior tweaks), `tmux-scripts/` (as `~/.tmux/scripts`), `copilot-instructions.md` (as `~/.copilot/copilot-instructions.md`), `asm-lsp/.asm-lsp.toml` (as `~/.config/asm-lsp/.asm-lsp.toml`), and `scripts/ld-format` (as `~/.local/bin/ld-format`, the GNU ld linker-script formatter) into place |
 | `repair_config_symlinks` | Re-creates any of those symlinks that are missing or point at the wrong path. Runs unconditionally on every `setup.sh` run (it is a no-op when the links are healthy) because `link_configs` is migration-log-guarded and so never re-runs - without this, a deleted `~/.tmux/scripts` silently breaks tmux window auto-naming, since `automatic-rename-format` shells out to `~/.tmux/scripts/window-name.sh` and tmux falls back to empty window names with no error |
 | `install_tmux_plugins` | Starts a throwaway tmux server/session if none is running, sets `TMUX_PLUGIN_MANAGER_PATH` explicitly, then runs TPM's non-interactive installer so tmux plugins (`tmux-sensible`, `tmux-which-key`) are installed without needing to press `prefix+I` (works standalone even before tmux.conf has ever been loaded by a live session) |
 | `bashrc_source` | Adds `source ~/.bash_profile_yf` to `~/.bashrc` |
@@ -223,9 +223,10 @@ Worth knowing:
 
 GNU assembler (including RISC-V) and GNU ld linker scripts get tree-sitter
 highlighting, an `asm-lsp` language server with a local supplement for
-RISC-V pseudo-instructions/registers/CSRs, and `rvfmt` formatting through
-conform.nvim. `.S` files are preprocessed by the C compiler, so `#include` /
-`#define` lines show up as comments.
+RISC-V pseudo-instructions/registers/CSRs, and formatting through conform.nvim
+(`rvfmt` for `asm`, a small `ld-format` helper for `ld` linker scripts that
+normalizes indentation from brace nesting). `.S` files are preprocessed by the
+C compiler, so `#include` / `#define` lines show up as comments.
 
 See [`docs/asm.md`](docs/asm.md) for the parser/query details, the RISC-V
 hover/completion supplement, the `rvfmt` patch, and how to enable compiler
