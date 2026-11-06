@@ -31,7 +31,7 @@ if command -v tmux &>/dev/null && [ -z "$TMUX" ] && [ -n "$PS1" ]; then
 fi
 
 # ---- paths ----
-export PROJECT_PATH=~/dispute/ # on Git Bash / MSYS
+export PROJECT_PATH=~/Projects/mtrx_asm/
 # export PROJECT_PATH="$HOME/__Projects/dispute" # example for Linux/macOS
 export COMPOSE_FOLDER_PATH="$PROJECT_PATH/src/docker-compose"
 
@@ -574,3 +574,5 @@ alias exp="/mnt/c/Windows/explorer.exe ."
 alias rider="/mnt/c/Users/FozekoshYurii/AppData/Local/Programs/Rider/bin/rider64.exe"
 export NODE_OPTIONS="--max-old-space-size=16192"
 export PATH="/home/yfozekosh/.local/opt/xpack-riscv-none-elf-gcc-15.2.0-1/bin:$PATH"
+export EDITOR=nvim
+export SUDO_EDITOR=vim
