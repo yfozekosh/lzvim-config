@@ -167,6 +167,25 @@ test("resolver relative", function()
   vim.fn.delete(tmp, "rf")
 end)
 
+test("resolver prefers opened project over recorded absolute path", function()
+  local tmp = vim.fn.tempname()
+  vim.fn.mkdir(tmp .. "/newproj/src", "p")
+  vim.fn.mkdir(tmp .. "/newproj/out", "p")
+  vim.fn.mkdir(tmp .. "/old/place/src", "p")
+  vim.fn.writefile({ "" }, tmp .. "/newproj/Makefile")
+  vim.fn.writefile({ "x" }, tmp .. "/newproj/src/x.c")
+  -- The build-time path still exists, but must not win over the project copy.
+  vim.fn.writefile({ "stale" }, tmp .. "/old/place/src/x.c")
+  local elf = tmp .. "/newproj/out/f.elf"
+  local resolver = config.make_path_resolver(elf)
+  eq(
+    resolver(tmp .. "/old/place/src/x.c"),
+    vim.fs.normalize(tmp .. "/newproj/src/x.c"),
+    "opened project path should shadow the recorded absolute path"
+  )
+  vim.fn.delete(tmp, "rf")
+end)
+
 print(string.format("\n%d/%d passed", test_count - fail_count, test_count))
 if fail_count > 0 then
   vim.cmd("cquit 1")

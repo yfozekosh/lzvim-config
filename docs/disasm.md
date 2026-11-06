@@ -40,8 +40,12 @@ reordering. A source line can own several disjoint instruction ranges; all
 of them are highlighted. An unmarked function (for example one built without
 `-g`) is left unmapped rather than mis-attributed.
 
-Relative marker paths are resolved against the ELF's project root, the ELF
-directory, its parent, and the current directory.
+Marker paths are resolved against the opened project: the ELF's project root,
+the ELF directory, its parent, and the current directory. Absolute paths
+recorded at build time are not trusted blindly — the longest existing suffix
+of the path is looked up under those roots first, so a stale or foreign path
+such as `/old/place/src/main.c` maps to `<root>/src/main.c` even when the old
+path still exists. The recorded absolute path is only a fallback.
 
 ## Limitations
 

@@ -93,6 +93,32 @@ function M.resolve_objdump(config)
   return nil, OBJDUMP_CANDIDATES
 end
 
+local function path_parts(path)
+  local parts = {}
+  for part in path:gmatch("[^/\\]+") do
+    parts[#parts + 1] = part
+  end
+  return parts
+end
+
+-- Debug info stores the absolute paths from build time. Those may point at a
+-- different checkout (the project moved, or the ELF was built elsewhere).
+-- Look for the longest existing suffix of the recorded path under the opened
+-- project's roots instead, so `/old/place/src/main.c` maps to
+-- `<root>/src/main.c`.
+local function relocate(path, roots)
+  local parts = path_parts(path)
+  for _, root in ipairs(roots) do
+    for i = 1, #parts do
+      local candidate = vim.fs.normalize(vim.fs.joinpath(root, table.concat(parts, "/", i)))
+      if vim.uv.fs_stat(candidate) then
+        return candidate
+      end
+    end
+  end
+  return nil
+end
+
 function M.make_path_resolver(elf_path)
   local roots = M.roots_for(elf_path)
 
@@ -117,7 +143,16 @@ function M.make_path_resolver(elf_path)
 
     local normalized = vim.fs.normalize(raw)
     if vim.startswith(normalized, "/") or normalized:match("^%a:") then
-      return normalized
+      -- Prefer the copy in the opened project over the build-time path, so a
+      -- stale or foreign absolute path cannot shadow the real source file.
+      local relocated = relocate(normalized, unique_roots)
+      if relocated then
+        return relocated
+      end
+      if vim.uv.fs_stat(normalized) then
+        return normalized
+      end
+      return nil
     end
 
     for _, root in ipairs(unique_roots) do
