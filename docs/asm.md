@@ -103,6 +103,30 @@ and `<leader>cf` both work. `setup.sh` builds it from a pinned commit with
 `$` in identifiers and therefore fails on the standard `__global_pointer$`
 linker symbol.
 
+## Project symbols (after build)
+
+asm-lsp has no project index, so labels defined in other `.s`/`.S` files and
+functions/globals from C never appear in its completion. `lua/asm_symbols/`
+adds a separate blink.cmp source (`asm_symbols`, filetype `asm`) that reads
+the project's newest linked ELF with `nm`:
+
+- ELF discovery reuses the disassembly view's roots and patterns
+  (`out/*.elf`, `build/*.elf`, `*.elf`); `vim.g.asm_symbols.elf` pins one.
+- `nm` is resolved like objdump (`riscv-none-elf-nm` first, then host `nm`);
+  override with `vim.g.asm_symbols.nm`.
+- Items are cached by ELF path + mtime, so a `<leader>cb` rebuild is picked
+  up on the next completion without restarting Neovim. `nm` runs
+  asynchronously, so completion never blocks.
+- `T`/`W` become functions, data/bss objects become variables, absolute
+  symbols become constants. Auto-brackets are disabled for `asm`, so accepting
+  `delay` inserts `delay`.
+
+Run `:RiscvAsmDoctor` to see the chosen ELF, nm and symbol count.
+
+Limits: symbols only exist after a successful link; C macros and asm `.equ`
+constants are not ELF symbols and are not completed; assembler-discarded
+`.L...` labels remain handled by asm-lsp for the current file.
+
 ## Linker scripts (`ld`)
 
 GNU ld linker scripts (filetype `ld`, see `ftdetect/linker.lua` for the extra

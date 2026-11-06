@@ -225,8 +225,11 @@ GNU assembler (including RISC-V) and GNU ld linker scripts get tree-sitter
 highlighting, an `asm-lsp` language server with a local supplement for
 RISC-V pseudo-instructions/registers/CSRs, and formatting through conform.nvim
 (`rvfmt` for `asm`, a small `ld-format` helper for `ld` linker scripts that
-normalizes indentation from brace nesting). `.S` files are preprocessed by the
-C compiler, so `#include` / `#define` lines show up as comments.
+normalizes indentation from brace nesting). Assembly buffers also complete
+project-wide symbols (labels from other `.s`/`.S` files and C
+functions/globals) from the linked ELF via `lua/asm_symbols/`. `.S` files
+are preprocessed by the C compiler, so `#include` / `#define` lines show up
+as comments.
 
 See [`docs/asm.md`](docs/asm.md) for the parser/query details, the RISC-V
 hover/completion supplement, the `rvfmt` patch, and how to enable compiler

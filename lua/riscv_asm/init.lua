@@ -488,6 +488,14 @@ function M.doctor()
   end
 
   table.insert(lines, "")
+  local ok, sym_lines = pcall(require("asm_symbols").doctor_lines, bufnr)
+  if ok and type(sym_lines) == "table" then
+    vim.list_extend(lines, sym_lines)
+  else
+    table.insert(lines, "FAIL project symbols: " .. tostring(sym_lines))
+  end
+
+  table.insert(lines, "")
   table.insert(
     lines,
     "asm-lsp publishes diagnostics only with a `compiler` in its effective config plus compile flags "

@@ -14,6 +14,9 @@
 --   GAS pseudo-instructions (`la`, `li`, `mv`, `ret`, ...), ABI register
 --   names (`a0`, `t0`, ...) and common CSRs to hover and blink.cmp
 --   completion (upstream asm-lsp issue #261).
+-- * `lua/asm_symbols/` adds project-wide completion from the linked ELF:
+--   labels defined in other `.s`/`.S` files and functions/globals from C
+--   (after a successful build). Auto-brackets are disabled for `asm`.
 -- * `rvfmt` (https://github.com/mattfbacon/riscv-asm-fmt) formats RISC-V
 --   assembly through conform.nvim. setup.sh builds a patched copy so that
 --   symbols such as `__global_pointer$` are accepted by its lexer.
@@ -84,15 +87,27 @@ return {
     "saghen/blink.cmp",
     optional = true,
     opts = {
+      completion = {
+        accept = {
+          auto_brackets = {
+            blocked_filetypes = { "asm" },
+          },
+        },
+      },
       sources = {
         per_filetype = {
-          asm = { "riscv_asm", inherit_defaults = true },
+          asm = { "riscv_asm", "asm_symbols", inherit_defaults = true },
         },
         providers = {
           riscv_asm = {
             name = "RISC-V",
             module = "riscv_asm",
             score_offset = 10,
+          },
+          asm_symbols = {
+            name = "ELF symbols",
+            module = "asm_symbols",
+            score_offset = 5,
           },
         },
       },
