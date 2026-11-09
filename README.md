@@ -227,7 +227,9 @@ RISC-V pseudo-instructions/registers/CSRs, and formatting through conform.nvim
 (`rvfmt` for `asm`, a small `ld-format` helper for `ld` linker scripts that
 normalizes indentation from brace nesting). Assembly buffers also complete
 project-wide symbols (labels from other `.s`/`.S` files and C
-functions/globals) from the linked ELF via `lua/asm_symbols/`. `.S` files
+functions/globals) from the linked ELF via `lua/asm_symbols/`, and `K`/`gd`
+show and jump to the symbol's definition plus the comment lines above it
+via `lua/asm_docs/`. `.S` files
 are preprocessed by the C compiler, so `#include` / `#define` lines show up
 as comments.
 
@@ -248,8 +250,22 @@ names) on the actual ELF, so it reflects optimizer output and linker layout.
 
 Commands: `:DisasmOpen [elf]`, `:DisasmClose`, `:DisasmToggle [elf]`,
 `:DisasmRefresh`. With no path, the ELF is auto-detected under `out/`,
-`build/`, or the project root. Configuration via `vim.g.disasm` (see
-[`docs/disasm.md`](docs/disasm.md)).
+`build/`, or the project root. Cycle annotations are off by default; `L`
+cycles them through both flash latencies, L1-only, and L0-only. When enabled,
+the split appends per-basic-block CH32V003 cycle totals (taken/fallthrough for
+conditionals), per-line L0/L1 costs (L1 attributes each 2-cycle fetch charge
+to the instruction crossing a 4-byte chunk boundary), and why each block starts and ends
+(`· block start: target of j 8`, `· end block: conditional bgtz`); L0 totals
+that pay the `4k+2` flash penalty are marked `(+1 misaligned)`. Start reasons
+are green, end reasons yellow, misalignment red, and annotation text combines
+with source-line highlighting. `S` toggles instruction sizes next to addresses
+(`15e(4):` / `152(2):`), independently of the cycle annotation mode; a 16-bit
+NOP is shown as `c.nop`, while a 32-bit NOP stays `nop`.
+A `jal`/`call`/`jalr` call to `ra` also creates a return edge to the following
+instruction, so post-call code is annotated; `j`/`tail` do not.
+Every instruction is annotated; a block with no statically known entry uses
+a cold fallback labeled `(no known entry)`.
+Configuration via `vim.g.disasm` (see [`docs/disasm.md`](docs/disasm.md)).
 
 ## Shared clipboard (Alacritty + tmux + nvim, WSL)
 

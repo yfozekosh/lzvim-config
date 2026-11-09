@@ -12,6 +12,8 @@ end, { desc = "Inspect extmarks (line)" })
 
 vim.api.nvim_set_hl(0, "SnacksPickerDir", { link = "Directory" })
 vim.api.nvim_set_hl(0, "SnacksPickerPathHidden", { link = "NonText" })
+vim.api.nvim_set_hl(0, "SnacksPickerPathIgnored", { link = "Comment" })
+vim.api.nvim_set_hl(0, "SnacksPickerGitStatusIgnored", { link = "Comment" })
 vim.api.nvim_set_hl(0, "SnacksPickerGitStatusUntracked", { link = "DiagnosticInfo" })
 
 -- Inlay hints: avoid "Special" (often looks white in Nord).

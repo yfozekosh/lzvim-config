@@ -63,6 +63,38 @@ function M.parse_nm(output)
   return result
 end
 
+--- Enrich completion items with their source location and preceding doc
+--- comments when a project source definition can be found.
+--- @param items lsp.CompletionItem[]
+--- @param start string|integer|nil
+--- @return lsp.CompletionItem[]
+function M.enrich_items(items, start)
+  local ok, asm_docs = pcall(require, "asm_docs")
+  if not ok or not asm_docs then
+    return items
+  end
+  for _, item in ipairs(items or {}) do
+    local def = asm_docs.find_definition(item.label, start)
+    if def then
+      local where = vim.fn.fnamemodify(def.path, ":t") .. ":" .. def.lnum
+      item.detail = (item.detail or "") .. " · " .. where
+      if item.documentation and type(item.documentation) == "table" then
+        local value = item.documentation.value or ""
+        value = value .. "\n\nDefined in `" .. def.path .. ":" .. def.lnum .. "`."
+        if def.comments and #def.comments > 0 then
+          value = value .. "\n\n" .. table.concat(def.comments, "\n")
+        end
+        if def.defline and def.defline ~= "" then
+          local lang = def.path:match("%.c$") and "c" or "asm"
+          value = value .. "\n\n```" .. lang .. "\n" .. def.defline .. "\n```"
+        end
+        item.documentation.value = value
+      end
+    end
+  end
+  return items
+end
+
 --- @param symbols table[]
 --- @param elf string
 --- @return lsp.CompletionItem[]
@@ -223,7 +255,7 @@ function source:get_completions(ctx, callback)
   if cache.items and cache.elf == elf then
     callback({ items = vim.deepcopy(cache.items), is_incomplete_forward = false, is_incomplete_backward = false })
     if cache.key ~= key then
-      M.refresh_cache(elf, nm_argv, key)
+      M.refresh_cache(elf, nm_argv, key, start)
     end
     return
   end
@@ -250,6 +282,7 @@ function source:get_completions(ctx, callback)
       local items = {}
       if res.code == 0 then
         items = M.to_items(M.parse_nm(res.stdout or ""), elf)
+        items = M.enrich_items(items, start)
       end
       cache.key = key
       cache.elf = elf
@@ -274,7 +307,7 @@ function source:get_completions(ctx, callback)
   end
 end
 
-function M.refresh_cache(elf, nm_argv, key)
+function M.refresh_cache(elf, nm_argv, key, start)
   if cache.pending then
     return
   end
@@ -286,7 +319,8 @@ function M.refresh_cache(elf, nm_argv, key)
       if res.code == 0 then
         cache.key = key
         cache.elf = elf
-        cache.items = M.to_items(M.parse_nm(res.stdout or ""), elf)
+        local items = M.to_items(M.parse_nm(res.stdout or ""), elf)
+        cache.items = M.enrich_items(items, start)
       end
     end)
   end)

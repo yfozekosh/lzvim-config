@@ -8,6 +8,12 @@ M.defaults = {
   highlight = "Visual",
   winbar = true,
   auto_refresh = true,
+  cycles = true,
+  cycle_view = "off",
+  show_sizes = false,
+  flash_start = 0x00000000,
+  flash_end = 0x00004000,
+  data_is_flash = false,
 }
 
 local OBJDUMP_CANDIDATES = {
@@ -27,6 +33,30 @@ function M.setup(user_opts)
     end
   end
   return config
+end
+
+-- A second objdump run with raw instruction bytes gives exact instruction
+-- sizes even at function ends, where the next-address heuristic cannot help.
+function M.raw_args(args)
+  local result = {}
+  for _, arg in ipairs(args or {}) do
+    if arg ~= "--no-show-raw-insn" then
+      result[#result + 1] = arg
+    end
+  end
+  result[#result + 1] = "--show-raw-insn"
+  return result
+end
+
+function M.make_flash_check(config)
+  if type(config.is_flash) == "function" then
+    return config.is_flash
+  end
+  local first = tonumber(config.flash_start) or 0x00000000
+  local last = tonumber(config.flash_end) or 0x00004000
+  return function(addr)
+    return addr >= first and addr < last
+  end
 end
 
 function M.roots_for(elf_path)

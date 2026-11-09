@@ -1,4 +1,5 @@
 local config_mod = require("disasm.config")
+local cycles = require("disasm.cycles")
 local parser = require("disasm.parser")
 local view = require("disasm.view")
 
@@ -7,6 +8,8 @@ local M = {}
 local state = {
   config = config_mod.setup({}),
   ns = nil,
+  cycle_ns = nil,
+  size_ns = nil,
   asm_buf = nil,
   asm_win = nil,
   source_win = nil,
@@ -14,6 +17,9 @@ local state = {
   lines = {},
   index = {},
   has_markers = false,
+  cycle_sizes = {},
+  cycle_annotations = {},
+  cycle_line_annotations = {},
   augroup = nil,
   warned_modified = {},
   warned_stale = false,
@@ -26,6 +32,8 @@ local state = {
 function M.setup(opts)
   state.config = config_mod.setup(opts)
   state.ns = vim.api.nvim_create_namespace("disasm.highlight")
+  state.cycle_ns = vim.api.nvim_create_namespace("disasm.cycles")
+  state.size_ns = vim.api.nvim_create_namespace("disasm.sizes")
   view.define_highlight(state.config)
 
   if not state.augroup then
@@ -49,6 +57,9 @@ function M.setup(opts)
           state.index = {}
           state.elf = nil
           state.has_markers = false
+          state.cycle_sizes = {}
+          state.cycle_annotations = {}
+          state.cycle_line_annotations = {}
         end
       end,
     })
@@ -59,6 +70,73 @@ end
 
 local function notify(msg, level)
   vim.notify(msg, level or vim.log.levels.INFO, { title = "Disasm" })
+end
+
+local function cycle_mode()
+  local mode = state.config.cycle_view
+  if mode == "both" or mode == "l0" or mode == "l1" then
+    return mode
+  end
+  return "off"
+end
+
+local function compute_cycles()
+  local mode = cycle_mode()
+  if state.config.cycles == false or #state.lines == 0 or mode == "off" then
+    state.cycle_annotations = {}
+    state.cycle_line_annotations = {}
+    return
+  end
+  local opts = {
+    sizes = state.cycle_sizes,
+    is_flash = config_mod.make_flash_check(state.config),
+    data_is_flash = state.config.data_is_flash,
+  }
+  if mode == "both" then
+    opts.latency = 0
+    local result0 = cycles.compute(state.lines, opts)
+    opts.latency = 1
+    local result1 = cycles.compute(state.lines, opts)
+
+    local annotations = {}
+    for row, annotation in pairs(result0.annotations) do
+      annotations[row] = {
+        compare = true,
+        latency0 = annotation,
+        single_instruction = annotation.single_instruction,
+        end_row = annotation.end_row,
+        instruction_count = annotation.instruction_count,
+        misaligned = annotation.misaligned,
+        no_entry = annotation.no_entry,
+        start_reason = annotation.start_reason,
+        end_reason = annotation.end_reason,
+      }
+    end
+    for row, annotation in pairs(result1.annotations) do
+      if annotations[row] then
+        annotations[row].latency1 = annotation
+      else
+        annotations[row] = {
+          compare = true,
+          latency1 = annotation,
+          single_instruction = annotation.single_instruction,
+          end_row = annotation.end_row,
+          instruction_count = annotation.instruction_count,
+          misaligned = annotation.misaligned,
+        no_entry = annotation.no_entry,
+          start_reason = annotation.start_reason,
+          end_reason = annotation.end_reason,
+        }
+      end
+    end
+    state.cycle_annotations = annotations
+    state.cycle_line_annotations = result0.line_annotations or {}
+  else
+    opts.latency = mode == "l0" and 0 or 1
+    local result = cycles.compute(state.lines, opts)
+    state.cycle_annotations = result.annotations
+    state.cycle_line_annotations = result.line_annotations or {}
+  end
 end
 
 local function elf_mtime_key(elf)
@@ -191,10 +269,32 @@ function M.open_with(elf)
   local resolver = config_mod.make_path_resolver(elf)
   local parsed = parser.parse(output, { resolve_path = resolver })
 
+  local sizes = cycles.parse_sizes(output)
+  local analysis_argv = vim.list_extend(
+    vim.list_extend({}, objdump_argv),
+    config_mod.raw_args(state.config.args)
+  )
+  table.insert(analysis_argv, elf)
+  local ok, analysis = pcall(function()
+    return vim.system(analysis_argv, { text = true }):wait()
+  end)
+  if ok and analysis and analysis.code == 0 then
+    local analysis_lines = vim.split(analysis.stdout or "", "\n", { plain = true })
+    for addr, size in pairs(cycles.parse_sizes(analysis_lines)) do
+      sizes[addr] = size
+    end
+  end
+
+  parsed.lines = cycles.relabel_compressed(parsed.lines, sizes)
+
   state.elf = elf
   state.lines = parsed.lines
   state.index = parsed.index
   state.has_markers = parsed.has_markers
+  state.cycle_sizes = sizes
+  state.cycle_annotations = {}
+  state.cycle_line_annotations = {}
+  compute_cycles()
   state.warned_modified = {}
   state.warned_stale = false
   state.elf_changed_notified = false
@@ -240,6 +340,42 @@ function M.toggle(elf_arg)
   end
 end
 
+function M.toggle_latency()
+  if state.config.cycles == false then
+    notify("Cycle annotations are disabled (vim.g.disasm.cycles = false).", vim.log.levels.WARN)
+    return
+  end
+  local message
+  local mode = cycle_mode()
+  if mode == "off" then
+    state.config.cycle_view = "both"
+    message = "Cycle view: L0 + L1"
+  elseif mode == "both" then
+    state.config.cycle_view = "l1"
+    message = "Cycle view: L1 only"
+  elseif mode == "l1" then
+    state.config.cycle_view = "l0"
+    message = "Cycle view: L0 only"
+  else
+    state.config.cycle_view = "off"
+    message = "Cycle view: off"
+  end
+  compute_cycles()
+  view.render_cycles(state)
+  view.set_winbar(state)
+  notify(message, vim.log.levels.INFO)
+end
+
+function M.toggle_sizes()
+  state.config.show_sizes = not state.config.show_sizes
+  view.render_sizes(state)
+  view.set_winbar(state)
+  notify(
+    "Instruction sizes: " .. (state.config.show_sizes and "on" or "off"),
+    vim.log.levels.INFO
+  )
+end
+
 function M.close()
   M.stop_elf_watch()
   view.close(state)
@@ -249,6 +385,9 @@ function M.close()
   state.index = {}
   state.elf = nil
   state.has_markers = false
+  state.cycle_sizes = {}
+  state.cycle_annotations = {}
+  state.cycle_line_annotations = {}
   state.warned_modified = {}
   state.warned_stale = false
   state.elf_mtime = nil

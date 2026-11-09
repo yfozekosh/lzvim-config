@@ -1,0 +1,190 @@
+
+/home/yfozekosh/Projects/mtrx_asm/out/firmware.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <_start>:
+_start():
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:13
+   0:	20001117          	auipc	sp,0x20001
+   4:	80010113          	addi	sp,sp,-2048 # 20000800 <_stack_top>
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:17
+   8:	400212b7          	lui	t0,0x40021
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:18
+   c:	0002a303          	lw	t1,0(t0) # 40021000 <RCC_CTLR>
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:19
+  10:	53f9                	li	t2,-2
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:20
+  12:	00737333          	and	t1,t1,t2
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:21
+  16:	0062a023          	sw	t1,0(t0)
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:24
+  1a:	400212b7          	lui	t0,0x40021
+  1e:	0291                	addi	t0,t0,4 # 40021004 <RCC_CFGR0>
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:25
+  20:	0002a303          	lw	t1,0(t0)
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:28
+  24:	02000393          	li	t2,32
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:29
+  28:	00736333          	or	t1,t1,t2
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:30
+  2c:	0062a023          	sw	t1,0(t0)
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:33
+  30:	400222b7          	lui	t0,0x40022
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:34
+  34:	0002a303          	lw	t1,0(t0) # 40022000 <FLASH_ACTLR>
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:35
+  38:	53f1                	li	t2,-4
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:36
+  3a:	00737333          	and	t1,t1,t2
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:37
+  3e:	0062a023          	sw	t1,0(t0)
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:40
+  42:	19400293          	li	t0,404
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:41
+  46:	20000317          	auipc	t1,0x20000
+  4a:	fba30313          	addi	t1,t1,-70 # 20000000 <CLOCK_SPEED>
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:42
+  4e:	20000397          	auipc	t2,0x20000
+  52:	fb638393          	addi	t2,t2,-74 # 20000004 <_ebss>
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:43
+  56:	406383b3          	sub	t2,t2,t1
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:44
+  5a:	00705b63          	blez	t2,70 <dc_x+0x6f>
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:47
+  5e:	0002a503          	lw	a0,0(t0)
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:48
+  62:	00a32023          	sw	a0,0(t1)
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:49
+  66:	0291                	addi	t0,t0,4
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:50
+  68:	0311                	addi	t1,t1,4
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:51
+  6a:	13f1                	addi	t2,t2,-4
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:52
+  6c:	fe03d9e3          	bgez	t2,5e <dc_x+0x5d>
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:56
+  70:	20000297          	auipc	t0,0x20000
+  74:	f9428293          	addi	t0,t0,-108 # 20000004 <_ebss>
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:57
+  78:	20000317          	auipc	t1,0x20000
+  7c:	f8c30313          	addi	t1,t1,-116 # 20000004 <_ebss>
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:58
+  80:	40530333          	sub	t1,t1,t0
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:59
+  84:	4381                	li	t2,0
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:60
+  86:	00605863          	blez	t1,96 <dc_x+0x95>
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:63
+  8a:	0072a023          	sw	t2,0(t0)
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:64
+  8e:	0291                	addi	t0,t0,4
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:65
+  90:	1371                	addi	t1,t1,-4
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:66
+  92:	fe604ce3          	bgtz	t1,8a <dc_x+0x89>
+/home/yfozekosh/Projects/mtrx_asm/src/boot.s:69
+  96:	0160006f          	j	ac <main>
+	...
+
+0000009c <delay>:
+delay():
+/home/yfozekosh/Projects/mtrx_asm/src/delay.s:7
+  9c:	00a05563          	blez	a0,a6 <delay+0xa>
+/home/yfozekosh/Projects/mtrx_asm/src/delay.s:9
+  a0:	1571                	addi	a0,a0,-4
+/home/yfozekosh/Projects/mtrx_asm/src/delay.s:10
+  a2:	fea04fe3          	bgtz	a0,a0 <delay+0x4>
+/home/yfozekosh/Projects/mtrx_asm/src/delay.s:12
+  a6:	8082                	ret
+  a8:	0001                	nop
+	...
+
+000000ac <main>:
+main():
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:10
+  ac:	00000013          	nop
+  b0:	00100513          	li	a0,1
+  b4:	00000097          	auipc	ra,0x0
+  b8:	fe8080e7          	jalr	-24(ra) # 9c <delay>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:11
+  bc:	00000013          	nop
+  c0:	00000013          	nop
+  c4:	00000013          	nop
+  c8:	00100513          	li	a0,1
+  cc:	00000097          	auipc	ra,0x0
+  d0:	fd0080e7          	jalr	-48(ra) # 9c <delay>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:12
+  d4:	00500513          	li	a0,5
+  d8:	00000097          	auipc	ra,0x0
+  dc:	fc4080e7          	jalr	-60(ra) # 9c <delay>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:13
+  e0:	00000013          	nop
+  e4:	00500513          	li	a0,5
+  e8:	00000097          	auipc	ra,0x0
+  ec:	fb4080e7          	jalr	-76(ra) # 9c <delay>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:15
+  f0:	00000013          	nop
+  f4:	7c500513          	li	a0,1989
+  f8:	00000097          	auipc	ra,0x0
+  fc:	fa4080e7          	jalr	-92(ra) # 9c <delay>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:16
+ 100:	00000013          	nop
+ 104:	00000013          	nop
+ 108:	7fd00513          	li	a0,2045
+ 10c:	00000097          	auipc	ra,0x0
+ 110:	f90080e7          	jalr	-112(ra) # 9c <delay>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:17
+ 114:	00000013          	nop
+ 118:	00000013          	nop
+ 11c:	00000013          	nop
+ 120:	7fd00513          	li	a0,2045
+ 124:	00000097          	auipc	ra,0x0
+ 128:	f78080e7          	jalr	-136(ra) # 9c <delay>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:18
+ 12c:	00000013          	nop
+ 130:	00000013          	nop
+ 134:	00000013          	nop
+ 138:	00000013          	nop
+ 13c:	7fd00513          	li	a0,2045
+ 140:	00000097          	auipc	ra,0x0
+ 144:	f5c080e7          	jalr	-164(ra) # 9c <delay>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:19
+ 148:	00001537          	lui	a0,0x1
+ 14c:	80150513          	addi	a0,a0,-2047 # 801 <_sidata+0x66d>
+ 150:	00000097          	auipc	ra,0x0
+ 154:	f4c080e7          	jalr	-180(ra) # 9c <delay>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:21
+ 158:	007a1537          	lui	a0,0x7a1
+ 15c:	1f550513          	addi	a0,a0,501 # 7a11f5 <dc_a0>
+ 160:	00000097          	auipc	ra,0x0
+ 164:	f3c080e7          	jalr	-196(ra) # 9c <delay>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:24
+ 168:	4585                	li	a1,1
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:28
+ 16a:	007a1537          	lui	a0,0x7a1
+ 16e:	19f50513          	addi	a0,a0,415 # 7a119f <_sidata+0x7a100b>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:29
+ 172:	0001                	nop
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:30
+ 174:	0001                	nop
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:31
+ 176:	371d                	jal	9c <delay>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:34
+ 178:	007a1537          	lui	a0,0x7a1
+ 17c:	1ed50513          	addi	a0,a0,493 # 7a11ed <_sidata+0x7a1059>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:35
+ 180:	20000517          	auipc	a0,0x20000
+ 184:	e8050513          	addi	a0,a0,-384 # 20000000 <CLOCK_SPEED>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:36
+ 188:	0001                	nop
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:37
+ 18a:	0001                	nop
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:38
+ 18c:	3f01                	jal	9c <delay>
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:39
+ 18e:	0585                	addi	a1,a1,1
+/home/yfozekosh/Projects/mtrx_asm/src/main.s:40
+ 190:	b7e5                	j	178 <main+0xcc>
+	...

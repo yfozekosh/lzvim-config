@@ -300,6 +300,18 @@ function M.hover_current()
     word = vim.fn.expand("<cWORD>"):gsub("[,;]+$", "")
     doc = M.hover(word, bufnr)
   end
+  if not doc then
+    -- Fall back to project-source docs (JSDoc-like comments above a symbol).
+    local ok, asm_docs = pcall(require, "asm_docs")
+    if ok then
+      local w = vim.fn.expand("<cword>")
+      doc = asm_docs.hover(w, bufnr)
+      if not doc then
+        w = vim.fn.expand("<cWORD>"):gsub("[,;]+$", "")
+        doc = asm_docs.hover(w, bufnr)
+      end
+    end
+  end
   if doc then
     vim.lsp.util.open_floating_preview(vim.split(doc, "\n"), "markdown", {
       border = "rounded",

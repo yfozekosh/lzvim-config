@@ -123,6 +123,20 @@ the project's newest linked ELF with `nm`:
 
 Run `:RiscvAsmDoctor` to see the chosen ELF, nm and symbol count.
 
+### Hover docs and goto definition
+
+`lua/asm_docs/` adds documentation and navigation on top of the same project
+symbols: pressing `K` on a symbol shows the contiguous comment lines
+immediately above its definition (so a comment such as `# void delay(int
+cycles)` or `# //.func (int a, int b)` becomes the hover), and `gd` jumps to
+that definition in the source file. The scan is tree-sitter based (`asm` and
+`c` parsers) and covers labels in `.s`/`.S` files and function definitions in
+`.c` files; results are cached by file mtime.
+
+Project-wide references (beyond the current file) are available with `gR` or
+`:RiscvAsmReferences`; plain `gr` keeps the LSP's own (current-file)
+references.
+
 Limits: symbols only exist after a successful link; C macros and asm `.equ`
 constants are not ELF symbols and are not completed; assembler-discarded
 `.L...` labels remain handled by asm-lsp for the current file.

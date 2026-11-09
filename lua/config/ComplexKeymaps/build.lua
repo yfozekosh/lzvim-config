@@ -2,9 +2,18 @@
 -- in a floating window.
 local M = {}
 
-local function run()
+local function run(target)
+  target = target or nil
+  local is_clean = target == "clean"
+  local title = is_clean and " Clean (make clean) " or " Build (make) "
+  local notify_title = is_clean and "Clean" or "Build"
+  local cmd = { "make" }
+  if target then
+    table.insert(cmd, target)
+  end
+
   if vim.fn.executable("make") == 0 then
-    vim.notify("`make` not found on PATH", vim.log.levels.ERROR, { title = "Build" })
+    vim.notify("`make` not found on PATH", vim.log.levels.ERROR, { title = notify_title })
     return
   end
 
@@ -27,7 +36,7 @@ local function run()
     col = col,
     style = "minimal",
     border = "rounded",
-    title = " Build (make) ",
+    title = title,
     title_pos = "center",
   })
   vim.wo[win].wrap = false
@@ -48,7 +57,8 @@ local function run()
     end
   end
 
-  send("Build: make\r\ncwd: " .. cwd .. "\r\n" .. string.rep("=", 80) .. "\r\n")
+  local label = is_clean and "Clean: make clean" or "Build: make"
+  send(label .. "\r\ncwd: " .. cwd .. "\r\n" .. string.rep("=", 80) .. "\r\n")
 
   local close = function()
     if vim.api.nvim_win_is_valid(win) then
@@ -59,7 +69,7 @@ local function run()
   vim.keymap.set({ "n", "t" }, "<Esc>", close, { buffer = buf, nowait = true, silent = true })
   vim.cmd("stopinsert")
 
-  vim.system({ "make" }, {
+  vim.system(cmd, {
     cwd = cwd,
     text = true,
     stdout = function(_, data)
@@ -74,9 +84,9 @@ local function run()
         send("\r\n" .. string.rep("=", 40) .. "\r\nexit code: " .. tostring(res.code) .. "\r\n")
       end
       if res.code == 0 then
-        vim.notify("Build succeeded", vim.log.levels.INFO, { title = "Build" })
+        vim.notify(is_clean and "Clean succeeded" or "Build succeeded", vim.log.levels.INFO, { title = notify_title })
       else
-        vim.notify("Build failed (exit " .. tostring(res.code) .. ")", vim.log.levels.ERROR, { title = "Build" })
+        vim.notify((is_clean and "Clean" or "Build") .. " failed (exit " .. tostring(res.code) .. ")", vim.log.levels.ERROR, { title = notify_title })
       end
     end)
   end)
@@ -84,8 +94,12 @@ end
 
 M.run = run
 
-vim.api.nvim_create_user_command("Build", function()
-  run()
-end, { desc = "Build with make and show output in a floating window" })
+vim.api.nvim_create_user_command("Build", function(opts)
+  run(opts.args ~= "" and opts.args or nil)
+end, { nargs = "?", desc = "Build with make and show output in a floating window" })
+
+vim.api.nvim_create_user_command("Clean", function()
+  run("clean")
+end, { desc = "Clean with make clean and show output in a floating window" })
 
 return M

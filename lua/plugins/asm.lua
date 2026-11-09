@@ -23,6 +23,20 @@
 
 return {
   {
+    "folke/which-key.nvim",
+    optional = true,
+    opts = function(_, opts)
+      opts.spec = opts.spec or {}
+      table.insert(opts.spec, {
+        "gR",
+        desc = "Project-wide references (asm)",
+        cond = function()
+          return vim.bo.filetype == "asm"
+        end,
+      })
+    end,
+  },
+  {
     "nvim-treesitter/nvim-treesitter",
     opts = function(_, opts)
       opts.ensure_installed = opts.ensure_installed or {}
@@ -35,6 +49,28 @@ return {
       vim.api.nvim_create_user_command("RiscvAsmDoctor", function()
         require("riscv_asm").doctor()
       end, { desc = "Explain why RISC-V asm-lsp has (or has not) any diagnostics" })
+      vim.api.nvim_create_user_command("RiscvAsmReferences", function()
+        local bufnr = vim.api.nvim_get_current_buf()
+        local word = vim.fn.expand("<cword>")
+        local ok, asm_docs = pcall(require, "asm_docs")
+        local items = {}
+        if ok then
+          for _, r in ipairs(asm_docs.references(word, bufnr)) do
+            items[#items + 1] = {
+              filename = r.filename,
+              lnum = r.lnum,
+              col = r.col,
+              text = r.text,
+            }
+          end
+        end
+        if #items == 0 then
+          vim.notify("No references found")
+        else
+          vim.fn.setqflist({}, " ", { title = "References", items = items })
+          vim.cmd("botright copen")
+        end
+      end, { desc = "Project-wide references for the symbol under the cursor" })
     end,
     opts = {
       servers = {
@@ -53,6 +89,44 @@ return {
                 require("riscv_asm").hover_current()
               end,
               desc = "Hover (RISC-V pseudo/register/CSR)",
+            },
+            {
+              "gd",
+              function()
+                local word = vim.fn.expand("<cword>")
+                local ok, asm_docs = pcall(require, "asm_docs")
+                if ok and asm_docs.goto_definition(word, vim.api.nvim_get_current_buf()) then
+                  return
+                end
+                vim.lsp.buf.definition()
+              end,
+              desc = "Goto definition (project symbols)",
+            },
+            {
+              "gR",
+              function()
+                local bufnr = vim.api.nvim_get_current_buf()
+                local word = vim.fn.expand("<cword>")
+                local ok, asm_docs = pcall(require, "asm_docs")
+                local items = {}
+                if ok then
+                  for _, r in ipairs(asm_docs.references(word, bufnr)) do
+                    items[#items + 1] = {
+                      filename = r.filename,
+                      lnum = r.lnum,
+                      col = r.col,
+                      text = r.text,
+                    }
+                  end
+                end
+                if #items == 0 then
+                  vim.notify("No references found")
+                else
+                  vim.fn.setqflist({}, " ", { title = "References", items = items })
+                  vim.cmd("botright copen")
+                end
+              end,
+              desc = "Project-wide references",
             },
           },
         },
@@ -96,7 +170,7 @@ return {
       },
       sources = {
         per_filetype = {
-          asm = { "riscv_asm", "asm_symbols", inherit_defaults = true },
+          asm = { "riscv_asm", "asm_symbols", "asm_macros", inherit_defaults = true },
         },
         providers = {
           riscv_asm = {
@@ -108,6 +182,11 @@ return {
             name = "ELF symbols",
             module = "asm_symbols",
             score_offset = 5,
+          },
+          asm_macros = {
+            name = "Macros",
+            module = "asm_macros",
+            score_offset = 6,
           },
         },
       },
