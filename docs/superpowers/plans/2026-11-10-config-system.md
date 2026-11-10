@@ -214,3 +214,11 @@ Files:
 - Comments explain invariants and reasons, not narration.
 - Stdlib only; no third-party Python deps.
 - Each module stays small; split rather than grow.
+
+### Testing environment (added)
+
+- This development machine has no Docker and must not get it.
+- End-to-end smoke tests run on the "111" machine using Fedora and Ubuntu
+  container images.
+- Local verification here is limited to syntax checks (`bash -n`, `python -m
+  py_compile`) and the plain-Lua/Python unit tests.
