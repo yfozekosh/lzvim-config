@@ -205,3 +205,12 @@ Files:
 - [ ] Step 0b: Export `YF_DISTRO` and forwarded args; Python reads these.
 - [ ] Step 0c: Add a smoke test: run the shim on a container without python3
       and confirm it installs + delegates.
+
+### Code quality (added to global constraints)
+
+- Use classes for stateful concepts (`Migration`, `Feature`, `Profile`,
+  `MigrationLog`, `SetupContext`); free functions only for pure helpers.
+- Type-hinted public APIs; dataclasses for value objects.
+- Comments explain invariants and reasons, not narration.
+- Stdlib only; no third-party Python deps.
+- Each module stays small; split rather than grow.

@@ -281,3 +281,16 @@ on a machine with no Python:
   (no third-party packages are required anywhere in the stack).
 - Pass through all CLI args and the detected distro via environment so the
   Python side does not re-detect inconsistently.
+
+## Code quality (added)
+
+- Prefer classes/objects over free functions when state or lifecycle is
+  involved: `Migration`, `Feature`, `Profile`, `MigrationLog`, `SetupContext`.
+- Keep functions small and single-purpose; no god modules.
+- Comments explain *why* and invariants, not *what* the code does. No
+  narration, no commented-out code, no TODO without an owner.
+- Type hints on all Python public APIs; dataclasses for value objects.
+- No third-party dependencies; stdlib only (argparse, dataclasses, pathlib,
+  subprocess, curses for the TUI).
+- Tests for state parsing, feature resolution, dependency closure, and
+  migration reconciliation live under `tests/setup/`.
