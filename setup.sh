@@ -96,6 +96,7 @@ ensure_config_symlinks() {
   ensure_symlink "$PWD/.tmux.conf" "$HOME/.tmux.conf"
   ensure_symlink "$PWD/.bash_profile_yf" "$HOME/.bash_profile_yf"
   ensure_symlink "$PWD/.blerc" "$HOME/.blerc"
+  ensure_symlink "$PWD/.gdbinit" "$HOME/.gdbinit"
   ensure_symlink "$PWD/tmux-scripts" "$HOME/.tmux/scripts"
   ensure_symlink "$PWD/copilot-instructions.md" "$HOME/.copilot/copilot-instructions.md"
   ensure_symlink "$PWD/asm-lsp/.asm-lsp.toml" "$HOME/.config/asm-lsp/.asm-lsp.toml"
