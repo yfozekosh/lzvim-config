@@ -263,3 +263,21 @@ tests/setup/
   test_migration_state.py
   test_features.py
 ```
+
+### Bootstrap guarantees (added)
+
+The bash shim (`setup.sh`) is the only entrypoint users run, so it must work
+on a machine with no Python:
+
+- Detect `python3` on PATH; if present, exec the orchestrator.
+- Otherwise install it using the detected distro's package manager
+  (`dnf install -y python3` / `apt install -y python3`), reusing the same
+  distro detection as today.
+- For unsupported distros, print a clear manual-install instruction and
+  `exit 1` (Python is a hard dependency of the orchestrator, unlike
+  optional tools), matching the existing convention for truly required base
+  dependencies.
+- Verify the installed interpreter can import only the standard library
+  (no third-party packages are required anywhere in the stack).
+- Pass through all CLI args and the detected distro via environment so the
+  Python side does not re-detect inconsistently.

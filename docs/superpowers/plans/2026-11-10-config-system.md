@@ -197,3 +197,11 @@ Files:
 - [ ] Step 4: Port feature registry + dependency resolution.
 - [ ] Step 5: Port migrations incrementally, keeping their shell bodies via subprocess initially.
 - [ ] Step 6: Remove the old bash migration modules once parity is reached.
+
+### Bootstrap detail (added to Task 0)
+
+- [ ] Step 0a: Implement distro detection + python3 install in the shim before
+      exec, with manual-instruction fallback for unsupported distros.
+- [ ] Step 0b: Export `YF_DISTRO` and forwarded args; Python reads these.
+- [ ] Step 0c: Add a smoke test: run the shim on a container without python3
+      and confirm it installs + delegates.
