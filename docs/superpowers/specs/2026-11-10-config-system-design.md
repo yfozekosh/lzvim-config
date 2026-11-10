@@ -294,3 +294,12 @@ on a machine with no Python:
   subprocess, curses for the TUI).
 - Tests for state parsing, feature resolution, dependency closure, and
   migration reconciliation live under `tests/setup/`.
+
+### TUI library choice (added)
+
+- Use the standard library `curses` module for the interactive selector when
+  a TTY is available; it ships with Python and needs no install.
+- Fall back to a plain numbered prompt loop when `curses` is unavailable or
+  stdout is not a TTY (SSH non-interactive, CI, piped runs).
+- No third-party TUI frameworks (textual, rich, blessed, etc.) to keep the
+  zero-dependency bootstrap guarantee.
