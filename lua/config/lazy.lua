@@ -15,28 +15,51 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+local profile = require("config.profile")
+
+local spec = {
+  { "LazyVim/LazyVim", import = "lazyvim.plugins" },
+}
+
+-- LazyVim extras must be imported before the user's own plugin modules, so
+-- user specs can override extra defaults.
+if profile.has("git") then
+  table.insert(spec, { import = "lazyvim.plugins.extras.lang.git" })
+end
+if profile.has("embedded") then
+  table.insert(spec, { import = "lazyvim.plugins.extras.lang.clangd" })
+end
+if profile.has("ai") then
+  table.insert(spec, { import = "lazyvim.plugins.extras.ai.copilot-chat" })
+end
+if profile.has("frontend") then
+  table.insert(spec, { import = "lazyvim.plugins.extras.lang.typescript" })
+  table.insert(spec, { import = "lazyvim.plugins.extras.lang.angular" })
+  table.insert(spec, { import = "lazyvim.plugins.extras.formatting.prettier" })
+end
+
+-- Feature-owned plugin modules.
+table.insert(spec, { import = "plugins.core" })
+if profile.has("ai") then
+  table.insert(spec, { import = "plugins.ai" })
+end
+if profile.has("dotnet") then
+  table.insert(spec, { import = "plugins.dotnet" })
+end
+if profile.has("embedded") then
+  table.insert(spec, { import = "plugins.embedded" })
+end
+
 require("lazy").setup({
-  spec = {
-    -- add LazyVim and import its plugins
-    { "LazyVim/LazyVim", import = "lazyvim.plugins" },
-    -- import/override with your plugins
-    { import = "plugins" },
-  },
+  spec = spec,
   defaults = {
-    -- By default, only LazyVim plugins will be lazy-loaded. Your custom plugins will load during startup.
-    -- If you know what you're doing, you can set this to `true` to have all your custom plugins lazy-loaded by default.
     lazy = false,
-    -- It's recommended to leave version=false for now, since a lot the plugin that support versioning,
-    -- have outdated releases, which may break your Neovim install.
-    version = false, -- always use the latest git commit
-    -- version = "*", -- try installing the latest stable version for plugins that support semver
+    version = false,
   },
   install = { colorscheme = { "tokyonight", "habamax" } },
-  -- No background update checker: run `:Lazy update` manually.
   checker = { enabled = false },
   performance = {
     rtp = {
-      -- disable some rtp plugins
       disabled_plugins = {
         "gzip",
         "matchit",

@@ -57,6 +57,7 @@ vim.api.nvim_create_autocmd("User", {
   callback = reload_lsp_and_treesitter,
 })
 
+if require("config.profile").has("embedded") then
 -- PlatformIO: keep compile_commands.json fresh so clangd can resolve headers.
 --
 -- clangd needs a compilation database; without one every `#include` in a
@@ -202,4 +203,5 @@ for _, buf in ipairs(vim.api.nvim_list_bufs()) do
   if vim.api.nvim_buf_is_loaded(buf) then
     pio_maybe_generate(buf)
   end
+end
 end

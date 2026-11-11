@@ -5,7 +5,7 @@ highlighting, an LSP and a formatter.
 
 ## Tree-sitter highlighting
 
-- `lua/plugins/asm.lua` adds the `asm` and `linkerscript` parsers to
+- `lua/plugins/embedded/asm.lua` adds the `asm` and `linkerscript` parsers to
   nvim-treesitter's `ensure_installed` (lazy installs them on first launch).
 - Neovim already detects `*.s`, `*.S` and `*.asm` as `asm`, and `*.ld` /
   `ldscripts/` as `ld`. `ftdetect/linker.lua` adds the common embedded
@@ -28,7 +28,7 @@ are installed by `setup.sh`'s `install_riscv_asm_tools` migration into
 
 ### LSP: asm-lsp
 
-`asm-lsp` (`lua/plugins/asm.lua`) provides hover documentation, completion
+`asm-lsp` (`lua/plugins/embedded/asm.lua`) provides hover documentation, completion
 and goto-definition for GAS instructions, registers and directives,
 including RISC-V. The global config `asm-lsp/.asm-lsp.toml` is symlinked to
 `~/.config/asm-lsp/.asm-lsp.toml` by `setup.sh` and sets
@@ -86,7 +86,7 @@ prefer `compile_flags_txt` in mixed C/asm projects.
 
 The LSP root is the nearest directory with `.asm-lsp.toml`, `.git`,
 `compile_flags.txt` or `compile_commands.json` (the database files are extra
-root markers in `lua/plugins/asm.lua`). Run `:RiscvAsmDoctor` in a buffer to
+root markers in `lua/plugins/embedded/asm.lua`). Run `:RiscvAsmDoctor` in a buffer to
 see which piece is missing, which config is in effect, and whether the
 compiler and flags are found. The equivalent manual check is:
 
@@ -170,7 +170,7 @@ tree-sitter indent query; if treesitter is unavailable, Neovim's built-in
 - Autoformat is on by default (LazyVim's `vim.g.autoformat`). Disable it for
   one buffer with `:lua vim.b.autoformat = false`, or toggle formatting for
   the session with LazyVim's `<leader>uf`.
-- `rvfmt` parses GAS/RISC-V, not AT&T x86. `lua/plugins/asm.lua` skips it for
+- `rvfmt` parses GAS/RISC-V, not AT&T x86. `lua/plugins/embedded/asm.lua` skips it for
   buffers that look like x86 (e.g. `$1` immediates or `%rax` operands), so
   x86 assembly is left untouched.
 - `rvfmt` does not understand GAS macro parameters (`\arg`); on a `.macro`

@@ -7,6 +7,7 @@
   - [Quick start (Fedora, fresh machine)](#quick-start-fedora-fresh-machine)
   - [Manual steps](#manual-steps)
 - [`setup.sh` details](#setupsh-details)
+- [tmux status bar](#tmux-status-bar)
 - [Forked/vendored code (`plugin-forks/` and `app-forks/`)](#forkedvendored-code-plugin-forks-and-app-forks)
 - [C# / Roslyn troubleshooting](#c--roslyn-troubleshooting)
 - [PlatformIO / clangd (C/C++)](#platformio--clangd-cc)
@@ -82,52 +83,103 @@ back it up first - see the manual steps below.
 
 ## `setup.sh` details
 
-`setup.sh` is idempotent and safe to re-run any time (e.g. after pulling
-new changes) - it only applies migrations that haven't run yet on this
-machine.
+`setup.sh` is now a thin bootstrap: it detects the distro, installs `python3`
+if missing, and `exec`s `python3 -m provision.main`. The real orchestrator lives
+in the `provision/` Python package (stdlib only).
 
 **How it works:**
-- Each migration is a bash function, registered with
-  `run_migration "<name>" <function>`.
-- Applied migrations are logged to `~/.yf_setup_migrationlog` (one line per
-  migration: name, timestamp, `uname -a`). On the next run, any migration
-  already present in that log is skipped.
-- The target distro (Fedora or Debian/Ubuntu) is auto-detected from
-  `/etc/os-release`; most migrations branch on it, and print a warning
-  (rather than failing the whole run) for unsupported distros where a
-  manual install is needed instead.
-- To force a migration to re-run, delete its line from
-  `~/.yf_setup_migrationlog` (or the whole file to rerun everything).
+- Migrations are defined in `provision/migrations/*.py` as `Migration` objects with
+  `up`/`down`/`check` callables. Each migration belongs to a feature
+  (`core`, `build`, `shell`, `tmux`, `docker`, `git`, `node`, `ai`,
+  `frontend`, `dotnet`, `embedded`, `wsl`).
+- Features can be selected interactively (curses TUI with a plain numbered
+  fallback) or via `--profile`, `--features`, `--all`, `--noninteractive`.
+  Profiles: `minimal`, `work`, `frontend`, `embedded`, `dotnet`, `full`.
+- `core` installs `gcc` (Treesitter needs a C compiler) but not C++ or CMake;
+  select `build` when you need `g++`, `make`, and `cmake`. `embedded` includes
+  `build`; `work`, `frontend`, and `dotnet` do not.
+- Selection is persisted to `~/.config/yf-nvim/features` and the active
+  profile to `~/.config/yf-nvim/profile` (also readable by Neovim via
+  `lua/config/profile.lua`).
+- Applied migrations are logged to `~/.yf_setup_migrationlog` as
+  `apply <name> <timestamp> '<uname>'` / `undo <name> ...`. On re-run, a
+  migration that is no longer selected is undone (`run_down` + an `undo`
+  log entry); a selected migration that is not applied is applied; one
+  already applied is re-run idempotently (its `up` guard repairs a missing
+  target without writing another `apply` record).
+- `up` migrations check for externally installed targets and skip
+  installation when present, still recording the migration.
+- Dependencies between features are closed automatically (e.g. `ai` pulls in
+  `core` and `node`; `frontend` pulls in `core` and `node`; `docker` pulls in
+  `tmux`).
+- To force a migration to re-run, delete all of its lines from
+  `~/.yf_setup_migrationlog` (or the whole file to rerun everything), or
+  append an `apply <name> ...` record.
+
+**Selection and flags:**
+- `./setup.sh` with a TTY and no saved selection opens the interactive feature selector.
+- `--profile NAME` (`minimal`, `work`, `frontend`, `embedded`, `dotnet`, `full`)
+- `--features core,ai,...`
+- `--all`
+- `--interactive`, `--noninteractive`
+- `--purge` (or `SETUP_PURGE=1`) allows down migrations to remove OS packages.
+- `NVIM_PROFILE` overrides the saved profile for Neovim; `~/.config/yf-nvim/profile` and `~/.config/yf-nvim/features` hold the persisted selection.
 
 **Current migrations (in run order):**
 
-| Migration | What it does |
-|---|---|
-| `install_packages` | Installs `tmux`, `git`, `gcc`, `neovim`, `bat` (+ build tools on Fedora) |
-| `install_cmake` | Installs `cmake` |
-| `install_tpm` | Clones the Tmux Plugin Manager (TPM) to `~/.tmux/plugins/tpm`, but only if it isn't already there (checks for the `.git` dir) - previously it blind-cloned with `\|\| true`, which swallowed every failure and could log success without restoring a deleted clone |
-| `link_configs` | Symlinks `.tmux.conf`, `.bash_profile_yf`, `.blerc` (ble.sh color/behavior tweaks), `tmux-scripts/` (as `~/.tmux/scripts`), `copilot-instructions.md` (as `~/.copilot/copilot-instructions.md`), `asm-lsp/.asm-lsp.toml` (as `~/.config/asm-lsp/.asm-lsp.toml`), and `scripts/ld-format` (as `~/.local/bin/ld-format`, the GNU ld linker-script formatter) into place |
-| `repair_config_symlinks` | Re-creates any of those symlinks that are missing or point at the wrong path. Runs unconditionally on every `setup.sh` run (it is a no-op when the links are healthy) because `link_configs` is migration-log-guarded and so never re-runs - without this, a deleted `~/.tmux/scripts` silently breaks tmux window auto-naming, since `automatic-rename-format` shells out to `~/.tmux/scripts/window-name.sh` and tmux falls back to empty window names with no error |
-| `install_tmux_plugins` | Starts a throwaway tmux server/session if none is running, sets `TMUX_PLUGIN_MANAGER_PATH` explicitly, then runs TPM's non-interactive installer so tmux plugins (`tmux-sensible`, `tmux-which-key`) are installed without needing to press `prefix+I` (works standalone even before tmux.conf has ever been loaded by a live session) |
-| `bashrc_source` | Adds `source ~/.bash_profile_yf` to `~/.bashrc` |
-| `install_build_essentials` | Installs `gcc-c++`, `cmake`, `vim`, `fastfetch`, `awk`, `bat` |
-| `install_tmux_mem_cpu_load` | Builds and installs `tmux-mem-cpu-load` from `app-forks/tmux-mem-cpu-load` |
-| `install_dotnet` | Installs .NET runtime dependencies and runs the official `dotnet-install.sh` |
-| `install_nodejs` | Installs Node.js + npm (needed by the three migrations below) |
-| `install_copilot_cli` | Installs the GitHub Copilot CLI (`npm install -g @github/copilot`) |
-| `configure_claude_statusline` | Points Claude Code's `statusLine.command` (in `~/.claude/settings.json`) at `claude-scripts/statusline.sh`, and **repairs** it if it has gone stale. Because that setting stores an absolute path into this repo, it silently breaks if the repo moves, and `~/.claude/settings.json` can be deleted or rewritten by Claude Code itself; the old "only set if unset" logic plus the migration-log guard meant either case stayed broken while `setup.sh` reported success. A genuine customization pointing at a different, existing script is still left alone. Claude Code invokes that script after every response with the session's real cost (its own accounting) and context-window usage; it caches those for the tmux Claude usage widget (`tmux-scripts/claude-usage.sh`, shown only while the active window has the Claude CLI running) and prints a compact summary as Claude Code's own status line. Note: this is real per-session cost, not the monthly-plan quota `/usage` shows - Claude Code's statusLine hook has no rate-limit/quota field to read |
-| `install_gh_cli` | Installs the GitHub CLI (`gh`) from the official apt/dnf repo |
-| `install_copilot_usage_scraper` | Installs npm deps + Playwright Chromium + OS runtime libs for the tmux Copilot AI-credit usage widget (`tmux-scripts/copilot-usage-scraper/`), shown in the status bar only while the active window has the Copilot CLI running in one of its panes |
-| `install_lazygit` | Installs `lazygit` (Fedora via the `atim/lazygit` copr repo; other distros get a warning with manual install instructions) |
-| `install_wsl_fonts` | WSL only (runs via `run_migration_if_wsl`, so it stays *unapplied* - and will still run if you move to WSL): installs DejaVu + Liberation font families so KiCad and other GTK apps render with good fonts instead of the default Droid Sans fallback |
-| `install_blesh` | Builds and installs [ble.sh](https://github.com/akinomyoga/ble.sh) (Bash Line Editor - fish/zsh-like syntax highlighting, autosuggestions, vim-mode editing for bash) from git source, sources it from `~/.bashrc` |
-| `install_win32yank` | WSL only (via `run_migration_if_wsl`, stays unapplied off WSL): installs [`win32yank.exe`](https://github.com/equalsraf/win32yank) to `~/.local/bin` so tmux and nvim can read/write the real Windows clipboard (see "Shared clipboard" section below) |
-| `fix_wsl_interop_persistence` | WSL only (via `run_migration_if_wsl`, stays unapplied off WSL): adds a `[boot] command=` line to `/etc/wsl.conf` that re-registers the `WSLInterop` binfmt_misc entry on every boot. Fedora's WSL image ships with `systemd=true`, and systemd's own binfmt handling can wipe out WSL's private `WSLInterop` registration during boot, breaking every `.exe` call (`win32yank.exe`, `clip.exe`, `powershell.exe`, ...) with "cannot execute binary file". Also applies the fix immediately so the current boot doesn't need a restart. |
-| `install_riscv_asm_tools` | Installs the RISC-V assembly LSP (`asm-lsp`) and formatter (`rvfmt` from `mattfbacon/riscv-asm-fmt`) into `~/.local/bin`, both built from pinned commits with `cargo`. `asm-lsp` gets `patches/asm-lsp-full-reparse.patch`: upstream 0.10.1 applies tree-sitter edits using offsets from the already-updated document, corrupts its tree on multi-line edits, and then panics and exits. `rvfmt` gets `patches/riscv-asm-fmt-dollar-symbol.patch`, because upstream rejects `$` in symbols such as `__global_pointer$`. Installs `cargo` if needed (build dependency only) |
-| `bootstrap_nvim_plugins` | Runs `nvim --headless -c "luafile scripts/headless_bootstrap.lua"` to install every lazy.nvim plugin, treesitter parser, and Mason-managed LSP server/tool up front (using lazy.nvim's `sync({ wait = true })` API so it actually blocks until done), so the first interactive `nvim` launch is instant instead of installing plugins in the background |
+| Migration | Feature | What it does |
+|---|---|---|
+| `install_packages` | core | Installs `tmux`, `git`, `gcc`, `neovim`, `bat`, `fastfetch`, `vim`, download tools |
+| `link_configs` | core | Symlinks config files and scripts into place |
+| `repair_config_symlinks` | core | Re-creates missing/wrong symlinks (runs every run) |
+| `install_lazygit` | core | Installs `lazygit` |
+| `bootstrap_nvim_plugins` | core | Headless `nvim` plugin/parser/Mason bootstrap |
+| `install_cmake` | build | Installs `cmake` |
+| `install_build_essentials` | build | Installs `g++`/`build-essential` and `make` |
+| `bashrc_source` | shell | Adds `source ~/.bash_profile_yf` to `~/.bashrc` |
+| `install_blesh` | shell | Downloads and extracts the prebuilt ble.sh release (no `make`) |
+| `install_tpm` | tmux | Clones TPM |
+| `install_tmux_plugins` | tmux | Runs TPM installer |
+| `install_tmux_mem_cpu_load` | tmux | Compiles it with `build`, otherwise installs the pinned prebuilt; updates an older installed version |
+| `install_gh_cli` | git | Installs GitHub CLI |
+| `install_nodejs` | node | Installs Node.js + npm (shared by `ai` and `frontend`) |
+| `install_copilot_cli` | ai | Installs GitHub Copilot CLI |
+| `configure_claude_statusline` | ai | Points Claude Code status line at repo script |
+| `install_copilot_usage_scraper` | ai | npm + Playwright deps for usage widget |
+| `install_dotnet` | dotnet | Installs .NET SDK; down removes `~/.dotnet` and system dotnet packages |
+| `install_riscv_asm_tools` | embedded | Builds `asm-lsp` + `rvfmt` |
+| `install_wsl_fonts` | wsl | Installs WSL fonts |
+| `install_win32yank` | wsl | Installs `win32yank.exe` |
+| `fix_wsl_interop_persistence` | wsl | Fixes WSL interop persistence |
 
 See `AGENTS.md` for the convention to follow when adding a new migration
 (every migration must be documented here).
+
+## tmux status bar
+
+`tmux-scripts/memory-status.sh` adds `TMP:used/total` to the right side of the
+status bar only when `/tmp` is backed by `tmpfs`/`ramfs`, followed by
+`SWP:used/total`.
+
+The right side hides widgets progressively as the client narrows, dropping
+the rightmost first:
+
+| Minimum width | Visible on the right |
+| --- | --- |
+| 200 | path, TMP/SWP, date, Docker, Copilot, Claude, mem-cpu |
+| 180 | path, TMP/SWP, date, Docker, Copilot, Claude |
+| 160 | path, TMP/SWP, date, Docker, Copilot |
+| 120 | path, TMP/SWP, date, Docker |
+| 100 | path, TMP/SWP, date |
+| 60 | path, TMP/SWP |
+
+`TMP`/`SWP` sits before the clock, so it stays visible while there is room
+for the path or date.
+
+The Docker widget is controlled by the `docker` setup feature. When enabled it
+shows `Docker:[n]`, or `Docker:[n/a]` when Docker is absent or unreachable.
+When disabled it is omitted entirely. Toggle it with `./setup.sh --interactive`
+or include/exclude `docker` via `--features`.
 
 ## Forked/vendored code (`plugin-forks/` and `app-forks/`)
 
@@ -137,7 +189,7 @@ and which local patches it carries.
 
 ## C# / Roslyn troubleshooting
 
-C# support is via `seblyng/roslyn.nvim` (`lua/plugins/roslyn.lua`), backed
+C# support is via `seblyng/roslyn.nvim` (`lua/plugins/dotnet/roslyn.lua`), backed
 by a Roslyn language server that's installed and launched through Mason
 (the `roslyn-language-server` NuGet package from the official registry).
 Its project loading depends on `dotnet`/`DOTNET_ROOT` being correct and, for

@@ -82,7 +82,7 @@ lines like:
 
 ## `:RoslynDoctor` and notifications
 
-`lua/roslyn_diagnostics.lua` (wired up from `lua/plugins/roslyn.lua`) adds
+`lua/roslyn_diagnostics.lua` (wired up from `lua/plugins/dotnet/roslyn.lua`) adds
 two things so these failures aren't silently buried in `:LspLog` again:
 
 - **`:RoslynDoctor`** - a synchronous command that checks: `dotnet` resolves

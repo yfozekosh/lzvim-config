@@ -22,7 +22,7 @@ cmake_minimum_required(VERSION 3.5)
 project(tmux-mem-cpu-load)
 set(tmux-mem-cpu-load_VERSION_MAJOR 3)
 set(tmux-mem-cpu-load_VERSION_MINOR 8)
-set(tmux-mem-cpu-load_VERSION_PATCH 2)
+set(tmux-mem-cpu-load_VERSION_PATCH 3)
 #Compute full version string
 set(tmux-mem-cpu-load_VERSION
   ${tmux-mem-cpu-load_VERSION_MAJOR}.${tmux-mem-cpu-load_VERSION_MINOR}.${tmux-mem-cpu-load_VERSION_PATCH})
@@ -121,7 +121,7 @@ if(BUILD_TESTING)
     )
 
   add_test(NAME invalid_graph_lines
-    COMMAND tmux-mem-cpu-load --graph_lines -2
+    COMMAND tmux-mem-cpu-load --graph-lines -2
     )
 
   add_test(NAME old_option_specification

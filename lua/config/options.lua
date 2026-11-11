@@ -30,7 +30,8 @@ if vim.fn.has("wsl") == 1 and vim.fn.executable("win32yank.exe") == 1 then
 end
 vim.opt.clipboard = "unnamedplus"
 
-vim.lsp.config("roslyn", {
+if require("config.profile").has("dotnet") then
+  vim.lsp.config("roslyn", {
   on_attach = function()
     -- nop.
   end,
@@ -62,4 +63,4 @@ vim.lsp.config("roslyn", {
     },
   },
 })
-
+end

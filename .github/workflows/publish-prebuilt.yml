@@ -1,0 +1,24 @@
+name: Publish prebuilt binaries
+
+on:
+  push:
+    tags:
+      - "tmux-mem-cpu-load-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            assets/prebuilt/tmux-mem-cpu-load-linux-x86_64 \
+            assets/prebuilt/tmux-mem-cpu-load-linux-x86_64.sha256 \
+            --title "tmux-mem-cpu-load prebuilt" \
+            --notes "Prebuilt tmux-mem-cpu-load binaries for profiles without the build feature."
