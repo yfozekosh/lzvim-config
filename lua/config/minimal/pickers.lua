@@ -50,7 +50,7 @@ end
 function M.setup()
   vim.keymap.set("n", "<leader><space>", find_files, { desc = "Find file" })
   vim.keymap.set("n", "<leader>/", grep, { desc = "Grep" })
-  vim.keymap.set("n", "<leader>e", "<cmd>Explore<cr>", { desc = "Explorer" })
+  vim.keymap.set("n", "<leader>e", "<cmd>Lexplore<cr>", { desc = "Explorer" })
   if vim.fn.executable("lazygit") == 1 then
     vim.keymap.set("n", "<leader>gg", function()
       vim.cmd("terminal lazygit")

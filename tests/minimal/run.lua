@@ -143,4 +143,16 @@ do
   vim.cmd("bd! " .. term)
 end
 
+-- Bug fix: <leader>e must toggle the explorer so it can be closed again.
+do
+  vim.cmd("runtime! plugin/netrwPlugin.vim")
+  local before = #vim.api.nvim_list_wins()
+  local keys = vim.api.nvim_replace_termcodes("<leader>e", true, false, true)
+  vim.api.nvim_feedkeys(keys, "x", false)
+  assert(#vim.api.nvim_list_wins() == before + 1, "explorer opens")
+  assert(vim.bo[vim.api.nvim_win_get_buf(0)].filetype == "netrw", "explorer shows netrw")
+  vim.api.nvim_feedkeys(keys, "x", false)
+  assert(#vim.api.nvim_list_wins() == before, "explorer toggles closed")
+end
+
 print("minimal tests OK")
