@@ -22,4 +22,14 @@ assert(vim.o.laststatus == 3 and vim.o.showmode == false, "global statusline")
 assert(vim.o.shadafile == "NONE", "shada must be disabled")
 assert(vim.fn.exists(":Lazy") == 0, "the minimal config must not define :Lazy")
 
+local function hl(name)
+  return vim.api.nvim_get_hl(0, { name = name })
+end
+
+assert(hl("Normal").fg == tonumber("D8DEE9", 16), "Nord foreground")
+assert(hl("Normal").bg == tonumber("2E3440", 16), "Nord background")
+assert(hl("Comment").fg == tonumber("616E88", 16), "Nord comment")
+assert(hl("Visual").bg == tonumber("434C5E", 16), "Nord selection")
+assert(hl("DiagnosticError").fg == tonumber("BF616A", 16), "Nord error")
+
 print("minimal tests OK")
