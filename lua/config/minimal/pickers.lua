@@ -34,7 +34,7 @@ local function find_files()
 end
 
 function M.grep_command(pattern)
-  return "grep! " .. vim.fn.shellescape(pattern)
+  return "grep! " .. vim.fn.shellescape(pattern, 1)
 end
 
 local function grep()

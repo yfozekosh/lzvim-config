@@ -82,4 +82,65 @@ vim.cmd("enew")
 keymaps.close_others()
 assert(#vim.fn.getbufinfo({ buflisted = 1 }) == 1, "F12 keeps one buffer")
 
+-- Review fix: statusline must escape percent signs in filenames.
+do
+  local statusline = require("config.minimal.statusline")
+  vim.cmd("enew")
+  local buf = vim.api.nvim_get_current_buf()
+  vim.api.nvim_buf_set_name(buf, "100%#ErrorMsg#name.txt")
+  local rendered = statusline.render()
+  assert(rendered:find("100%%#ErrorMsg#name.txt", 1, true), "statusline escapes percent in filename")
+  local evaluated = vim.api.nvim_eval_statusline(rendered, {})
+  assert(evaluated.str:find("100%#ErrorMsg#name.txt", 1, true), "statusline renders literal filename")
+  vim.cmd("enew")
+  vim.cmd("bwipeout! " .. buf)
+end
+
+-- Review fix: `grep -Rn` output must parse into usable quickfix entries.
+do
+  local old_grepprg = vim.o.grepprg
+  vim.o.grepprg = "grep -Rn"
+  vim.cmd("silent! grep! " .. vim.fn.shellescape("Nord-like colorscheme"))
+  local valid = false
+  for _, item in ipairs(vim.fn.getqflist()) do
+    if item.lnum > 0 and item.bufnr > 0 then
+      valid = true
+    end
+  end
+  assert(valid, "grep fallback produces valid quickfix entries")
+  vim.cmd("cclose")
+  vim.o.grepprg = old_grepprg
+end
+
+-- Review fix: Ex-special characters in grep patterns are escaped.
+assert(
+  pickers.grep_command("%") == "grep! " .. vim.fn.shellescape("%", 1),
+  "grep escapes Ex-special characters"
+)
+
+-- Review fix: close_others must preserve terminals and unlisted explorers.
+do
+  vim.cmd("enew")
+  local current = vim.api.nvim_get_current_buf()
+  vim.bo[current].buflisted = false
+  vim.bo[current].filetype = "netrw"
+  keymaps.close_others()
+  assert(vim.bo[current].buflisted == false, "close_others keeps explorer unlisted")
+end
+do
+  vim.cmd("enew")
+  vim.cmd("terminal")
+  local term = vim.api.nvim_get_current_buf()
+  assert(vim.bo[term].buftype == "terminal", "terminal buffer created")
+  vim.cmd("enew")
+  local current = vim.api.nvim_get_current_buf()
+  assert(current ~= term, "new buffer is not the terminal")
+  keymaps.close_others()
+  assert(
+    vim.api.nvim_buf_is_valid(term) and vim.bo[term].buftype == "terminal",
+    "close_others keeps terminals"
+  )
+  vim.cmd("bd! " .. term)
+end
+
 print("minimal tests OK")

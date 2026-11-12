@@ -50,8 +50,8 @@ function M.close_others()
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     local buf_ft = vim.bo[buf].filetype
     local is_current = buf == current
-    local is_terminal = buf_ft == "terminal"
-    local is_explorer = buf_ft == "neo-tree" or buf_ft == "NvimTree"
+    local is_terminal = vim.bo[buf].buftype == "terminal" or buf_ft == "terminal"
+    local is_explorer = buf_ft == "neo-tree" or buf_ft == "NvimTree" or buf_ft == "netrw"
 
     if vim.bo[buf].buflisted and not is_current and not is_terminal and not is_explorer then
       vim.cmd("bd! " .. buf)
@@ -59,7 +59,6 @@ function M.close_others()
     end
   end
 
-  vim.bo[current].buflisted = true
   vim.cmd("buffer " .. current)
 
   vim.opt.number = true

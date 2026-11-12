@@ -33,6 +33,7 @@ function M.render()
   if name == "" then
     name = "[No Name]"
   end
+  name = name:gsub("%%", "%%%%")
   parts[#parts + 1] = " " .. name
   if vim.bo.modified then
     parts[#parts + 1] = "[+]"

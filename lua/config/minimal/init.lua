@@ -34,7 +34,7 @@ function M.setup()
   vim.opt.foldmethod = "indent"
   vim.opt.foldtext = ""
   vim.opt.formatoptions = "jcroqlnt"
-  vim.opt.grepformat = "%f:%l:%c:%m"
+  vim.opt.grepformat = "%f:%l:%c:%m,%f:%l:%m"
   vim.opt.grepprg = vim.fn.executable("rg") == 1 and "rg --vimgrep --no-heading" or "grep -Rn"
   vim.opt.ignorecase = true
   vim.opt.inccommand = "nosplit"
