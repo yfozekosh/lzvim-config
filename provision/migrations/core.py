@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from ..common import (
     apt_install,
     dnf_install,
@@ -12,6 +14,13 @@ from ..common import (
     cmd_exists,
 )
 from ..models import Migration, SetupContext
+
+
+def nvim_plugins_bootstrapped(home: Path, rpi_marker: Path = Path("/etc/rpi-issue")) -> bool:
+    """Raspberry Pi runs the plugin-free config; there is nothing to sync."""
+    if rpi_marker.is_file():
+        return True
+    return (home / ".local" / "share" / "nvim" / "lazy").is_dir()
 
 
 def build(ctx: SetupContext) -> list[Migration]:
@@ -115,7 +124,7 @@ def build(ctx: SetupContext) -> list[Migration]:
         pass
 
     def bootstrap_nvim_plugins_check() -> bool:
-        return (home / ".local" / "share" / "nvim" / "lazy").is_dir()
+        return nvim_plugins_bootstrapped(home)
 
     return [
         Migration("install_packages", "core", install_packages_up, install_packages_down, install_packages_check),

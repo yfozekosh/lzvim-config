@@ -1,3 +1,9 @@
+-- The minimal (Raspberry Pi) config has no plugins and does not need the
+-- disassembly module; plugin/ scripts run even without lazy.nvim.
+if vim.g.yf_minimal then
+  return
+end
+
 require("disasm").setup(vim.g.disasm or {})
 
 vim.api.nvim_create_user_command("DisasmOpen", function(opts)

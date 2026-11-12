@@ -6,6 +6,7 @@
   - [Quick start (Windows + WSL, fresh machine)](#quick-start-windows--wsl-fresh-machine)
   - [Quick start (Fedora, fresh machine)](#quick-start-fedora-fresh-machine)
   - [Manual steps](#manual-steps)
+  - [Lightweight Neovim on Raspberry Pi](#lightweight-neovim-on-raspberry-pi)
 - [`setup.sh` details](#setupsh-details)
 - [tmux status bar](#tmux-status-bar)
 - [Forked/vendored code (`plugin-forks/` and `app-forks/`)](#forkedvendored-code-plugin-forks-and-app-forks)
@@ -81,6 +82,21 @@ back it up first - see the manual steps below.
    ```
    Lazy.nvim will automatically install all plugins on first launch.
 
+### Lightweight Neovim on Raspberry Pi
+
+On a Raspberry Pi (detected via `/etc/rpi-issue`) Neovim loads a plugin-free
+config from `lua/config/minimal/`: no LazyVim, no lazy.nvim, no plugin scan.
+It keeps LazyVim-like options (line numbers, 2-space indent, sign column),
+a hand-written Nord-like colorscheme, a built-in status line, the plugin-free
+keymaps (window/buffer navigation, `<C-a>`, `<F2>`, `<F11>`, `<F12>`,
+`<leader>cb/cc`), and built-in stand-ins for file find (`<leader><space>`),
+grep (`<leader>/`), the file explorer (`<leader>e`), and lazygit
+(`<leader>gg`, when installed). There is no completion, Treesitter, LSP UI,
+or git-sign integration.
+
+Force it on any machine with `YF_NVIM_MINIMAL=1 nvim`, or opt out on a Pi
+with `YF_NVIM_MINIMAL=0 nvim`.
+
 ## `setup.sh` details
 
 `setup.sh` is now a thin bootstrap: it detects the distro, installs `python3`
@@ -133,7 +149,7 @@ in the `provision/` Python package (stdlib only).
 | `link_configs` | core | Symlinks config files and scripts into place |
 | `repair_config_symlinks` | core | Re-creates missing/wrong symlinks (runs every run) |
 | `install_lazygit` | core | Installs `lazygit` |
-| `bootstrap_nvim_plugins` | core | Headless `nvim` plugin/parser/Mason bootstrap |
+| `bootstrap_nvim_plugins` | core | Headless nvim plugin/parser/Mason bootstrap (skipped on Raspberry Pi, which runs the plugin-free config) |
 | `install_cmake` | build | Installs `cmake` |
 | `install_build_essentials` | build | Installs `g++`/`build-essential` and `make` |
 | `bashrc_source` | shell | Adds `source ~/.bash_profile_yf` to `~/.bashrc` |
