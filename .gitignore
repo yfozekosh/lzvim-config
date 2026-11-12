@@ -9,3 +9,5 @@ data
 forks/**
 node_modules/
 .playwright-mcp/
+__pycache__/
+*.py[cod]
