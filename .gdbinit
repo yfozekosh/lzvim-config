@@ -5,8 +5,9 @@ set pagination off
 set confirm off
 set verbose off
 
-# Fancy colored prompt indicating our target connection
-set prompt (gdb) \[\033[1;36m\][MCU:3333]\[\033[0m\] 
+# Fancy colored prompt indicating our target connection.
+# GDB uses \001/\002, not Bash's \[/\], for non-printing prompt characters.
+set prompt (gdb) \001\033[1;36m\002[MCU:3333]\001\033[0m\002\040
 
 # Enable modern ANSI syntax styling (GDB 8.3+)
 set style enabled on
