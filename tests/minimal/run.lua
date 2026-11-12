@@ -40,4 +40,27 @@ assert(line:find("[No Name]", 1, true), "unnamed buffer label")
 local columns = statusline.render()
 assert(columns:find("%d+:%d+") ~= nil, "line:column position")
 
+local pickers = require("config.minimal.pickers")
+local repo = vim.fn.getcwd()
+local dir = repo .. "/.tmp/minimal-pickers"
+vim.fn.delete(dir, "rf")
+vim.fn.mkdir(dir .. "/.git", "p")
+vim.fn.writefile({ "x" }, dir .. "/a.lua")
+vim.fn.writefile({ "x" }, dir .. "/.git/config")
+vim.fn.chdir(dir)
+local files = pickers.list_files()
+assert(vim.tbl_contains(files, "a.lua"), "lists regular files")
+for _, file in ipairs(files) do
+  assert(not file:find("/.git/", 1, true) and not file:match("^%.git/"), ".git must be excluded")
+end
+vim.fn.mkdir(dir .. "/empty", "p")
+vim.fn.chdir(dir .. "/empty")
+assert(#pickers.list_files() == 0, "empty directory returns no files")
+vim.fn.chdir(repo)
+assert(pickers.grep_command("a b'c") == "grep! " .. vim.fn.shellescape("a b'c"), "grep is shell-escaped")
+assert(vim.fn.maparg("<leader><space>", "n") ~= "", "find-files map")
+assert(vim.fn.maparg("<leader>/", "n") ~= "", "grep map")
+assert(vim.fn.maparg("<leader>e", "n") ~= "", "explorer map")
+vim.fn.delete(dir, "rf")
+
 print("minimal tests OK")
