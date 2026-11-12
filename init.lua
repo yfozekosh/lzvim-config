@@ -1,25 +1,10 @@
--- if raspberry PI - run minimal config:
-if vim.osname == "Linux" and vim.fn.filereadable("/etc/rpi-issue") == 1 then
-  local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-
-  if not (vim.uv or vim.loop).fs_stat(lazypath) then
-    local lazyrepo = "https://github.com/folke/lazy.nvim.git"
-    local out = vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable", lazyrepo, lazypath })
-    if vim.v.shell_error ~= 0 then
-      vim.api.nvim_echo({
-        { "Failed to clone lazy.nvim:\n", "ErrorMsg" },
-        { out, "WarningMsg" },
-        { "\nPress any key to exit..." },
-      }, true, {})
-      vim.fn.getchar()
-      os.exit(1)
-    end
-  end
-  vim.opt.rtp:prepend(lazypath)
-
-  -- set number and relativenumber
-  vim.o.number = true
-  vim.o.relativenumber = true
+-- Raspberry Pi and other explicitly minimal machines run a plugin-free
+-- config: LazyVim needs Neovim >= 0.11.2, Debian trixie ships 0.10.4, and
+-- the Pi has ~91 MB RAM free. YF_NVIM_MINIMAL=1/0 overrides detection.
+local minimal = require("config.minimal")
+if minimal.enabled() then
+  vim.g.yf_minimal = true
+  minimal.setup()
   return
 end
 
