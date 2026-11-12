@@ -63,4 +63,23 @@ assert(vim.fn.maparg("<leader>/", "n") ~= "", "grep map")
 assert(vim.fn.maparg("<leader>e", "n") ~= "", "explorer map")
 vim.fn.delete(dir, "rf")
 
+local keymaps = require("config.minimal.keymaps")
+for _, lhs in ipairs({ "<C-h>", "<C-j>", "<C-k>", "<C-l>", "<S-h>", "<S-l>", "[b", "]b", "<C-s>", "<C-a>", "<F2>", "<F11>", "<F12>", "<leader>cb", "<leader>cc", "<leader>fw", "[d", "]d", "[q", "]q" }) do
+  assert(vim.fn.maparg(lhs, "n") ~= "", "missing mapping " .. lhs)
+end
+assert(vim.fn.maparg("<leader>bb", "n") ~= "", "alternate buffer map")
+
+vim.cmd("enew")
+vim.api.nvim_buf_set_lines(0, 0, -1, false, { "foo" })
+vim.bo.commentstring = "-- %s"
+vim.bo.filetype = "lua"
+keymaps.toggle_comment_and_next()
+assert(vim.api.nvim_buf_get_lines(0, 0, 1, false)[1] == "-- foo", "F2 comments")
+assert(pcall(vim.cmd, "normal [d"), "diagnostic jump must not error")
+assert(pcall(keymaps.code_action), "F11 must not error without LSP")
+vim.cmd("enew")
+vim.cmd("enew")
+keymaps.close_others()
+assert(#vim.fn.getbufinfo({ buflisted = 1 }) == 1, "F12 keeps one buffer")
+
 print("minimal tests OK")
