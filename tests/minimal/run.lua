@@ -32,4 +32,12 @@ assert(hl("Comment").fg == tonumber("616E88", 16), "Nord comment")
 assert(hl("Visual").bg == tonumber("434C5E", 16), "Nord selection")
 assert(hl("DiagnosticError").fg == tonumber("BF616A", 16), "Nord error")
 
+local statusline = require("config.minimal.statusline")
+assert(vim.o.statusline:find("__yf_minimal_statusline", 1, true), "statusline wired")
+local line = statusline.render()
+assert(type(line) == "string" and #line > 0, "render returns text")
+assert(line:find("[No Name]", 1, true), "unnamed buffer label")
+local columns = statusline.render()
+assert(columns:find("%d+:%d+") ~= nil, "line:column position")
+
 print("minimal tests OK")
