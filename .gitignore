@@ -8,6 +8,7 @@ foo.*
 data
 forks/**
 node_modules/
+.tmp/
 .playwright-mcp/
 __pycache__/
 *.py[cod]
