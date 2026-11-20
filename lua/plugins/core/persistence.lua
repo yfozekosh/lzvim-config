@@ -1,11 +1,7 @@
--- ~/.config/nvim/lua/plugins/persistence.lua
+-- Sessions aren't used (files are opened via the dashboard's `w` / directly).
+-- LazyVim enables persistence.nvim by default, which writes a session file
+-- on every exit; turn it off along with its <leader>q* keymaps.
 return {
   "folke/persistence.nvim",
-  event = "BufReadPre",
-  opts = {
-    dir = vim.fn.expand(vim.fn.stdpath("state") .. "/sessions"),
-    autosave = true, -- auto save session on exit
-    autoload = true, -- auto load session when entering dir
-    follow_cwd = true, -- track current working directory
-  },
+  enabled = false,
 }
