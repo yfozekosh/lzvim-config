@@ -150,6 +150,7 @@ in the `provision/` Python package (stdlib only).
 | `repair_config_symlinks` | core | Re-creates missing/wrong symlinks (runs every run) |
 | `install_lazygit` | core | Installs `lazygit` |
 | `bootstrap_nvim_plugins` | core | Headless nvim plugin/parser/Mason bootstrap (skipped on Raspberry Pi, which runs the plugin-free config) |
+| `prune_nvim_state` | core | Runs every setup: removes lazy plugins, Mason packages and treesitter parsers the current profile no longer declares (`scripts/headless_prune.lua`; `YF_NVIM_PRUNE_DRY=1` to preview). Keeps `lazy-lock.json` unchanged |
 | `install_cmake` | build | Installs `cmake` |
 | `install_build_essentials` | build | Installs `g++`/`build-essential` and `make` |
 | `bashrc_source` | shell | Adds `source ~/.bash_profile_yf` to `~/.bashrc` |
