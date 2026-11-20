@@ -9,7 +9,7 @@ from .models import Feature, Profile
 
 
 FEATURES: dict[str, Feature] = {
-    "core": Feature("core", "Base packages (gcc, tmux, git, nvim), lazygit, symlinks"),
+    "core": Feature("core", "Base packages (gcc, tmux, git, nvim), lazygit"),
     "build": Feature("build", "C++ toolchain, CMake, make", ("core",)),
     "shell": Feature("shell", "bash profile, ble.sh"),
     "tmux": Feature("tmux", "TPM, tmux plugins, mem-cpu-load"),

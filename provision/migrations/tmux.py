@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 
 from ..common import download_file, run, sha256_file
+from ..links import ConfigLink, link_migration
 from ..models import Migration, SetupContext
 
 TMUX_MEM_CPU_LOAD_TAG = "tmux-mem-cpu-load-v2"
@@ -198,4 +199,12 @@ def build(ctx: SetupContext) -> list[Migration]:
         Migration("install_tpm", "tmux", install_tpm_up, install_tpm_down, install_tpm_check),
         Migration("install_tmux_plugins", "tmux", install_tmux_plugins_up, install_tmux_plugins_down, install_tmux_plugins_check),
         Migration("install_tmux_mem_cpu_load", "tmux", install_tmux_mem_cpu_load_up, install_tmux_mem_cpu_load_down, install_tmux_mem_cpu_load_check),
+        link_migration(
+            "link_tmux_configs",
+            "tmux",
+            [
+                ConfigLink(repo / ".tmux.conf", home / ".tmux.conf"),
+                ConfigLink(repo / "tmux-scripts", home / ".tmux" / "scripts"),
+            ],
+        ),
     ]

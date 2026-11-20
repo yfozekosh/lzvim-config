@@ -147,8 +147,6 @@ in the `provision/` Python package (stdlib only).
 | Migration | Feature | What it does |
 |---|---|---|
 | `install_packages` | core | Installs `tmux`, `git`, `gcc`, `neovim`, `bat`, `fastfetch`, `vim`, download tools |
-| `link_configs` | core | Symlinks config files and scripts into place |
-| `repair_config_symlinks` | core | Re-creates missing/wrong symlinks (runs every run) |
 | `install_lazygit` | core | Installs `lazygit` |
 | `bootstrap_nvim_plugins` | core | Headless nvim plugin/parser/Mason bootstrap (skipped on Raspberry Pi, which runs the plugin-free config) |
 | `prune_nvim_state` | core | Runs every setup: removes lazy plugins, Mason packages and treesitter parsers the current profile no longer declares (`scripts/headless_prune.lua`; `YF_NVIM_PRUNE_DRY=1` to preview). Keeps `lazy-lock.json` unchanged |
@@ -156,25 +154,31 @@ in the `provision/` Python package (stdlib only).
 | `install_build_essentials` | build | Installs `g++`/`build-essential` and `make` |
 | `bashrc_source` | shell | Adds `source ~/.bash_profile_yf` to `~/.bashrc` |
 | `install_blesh` | shell | Downloads and extracts the prebuilt ble.sh release (no `make`) |
+| `link_shell_configs` | shell | Symlinks `~/.bash_profile_yf` and `~/.blerc` |
 | `install_tpm` | tmux | Clones TPM |
 | `install_tmux_plugins` | tmux | Runs TPM installer |
 | `install_tmux_mem_cpu_load` | tmux | Compiles it with `build`, otherwise installs the pinned prebuilt; updates an older installed version |
+| `link_tmux_configs` | tmux | Symlinks `~/.tmux.conf` and `~/.tmux/scripts` |
 | `install_gh_cli` | git | Installs GitHub CLI |
 | `install_nodejs` | node | Installs Node.js + npm (shared by `ai` and `frontend`) |
 | `install_copilot_cli` | ai | Installs GitHub Copilot CLI |
 | `configure_claude_statusline` | ai | Points Claude Code status line at repo script |
 | `install_copilot_usage_scraper` | ai | npm + Playwright deps for usage widget |
+| `link_ai_configs` | ai | Symlinks `~/.copilot/copilot-instructions.md` |
 | `install_dotnet` | dotnet | Installs .NET SDK; down removes `~/.dotnet` and system dotnet packages |
 | `install_riscv_asm_tools` | embedded | Builds `asm-lsp` + `rvfmt` |
+| `link_embedded_configs` | embedded | Symlinks the asm-lsp config and `~/.local/bin/ld-format` |
 | `install_gef` | gef | Clones the `yfozekosh/gef` CH32V003 fork into `~/.local/share/gef` |
+| `link_gef_configs` | gef | Symlinks `~/.gdbinit` |
 | `install_wsl_fonts` | wsl | Installs WSL fonts |
 | `install_win32yank` | wsl | Installs `win32yank.exe` |
 | `fix_wsl_interop_persistence` | wsl | Fixes WSL interop persistence |
 
 `install_gef` clones the `yfozekosh/gef` fork (branch `ch32v003-rv32ec`) into
 `~/.local/share/gef`, where the tracked `.gdbinit` loads it with the `gef`
-command. Unchecking removes only a real clone whose `origin` is that fork; a
-symlink to a development checkout is left untouched.
+command; `link_gef_configs` owns the `~/.gdbinit` symlink. Unchecking removes
+only a real clone whose `origin` is that fork; a symlink to a development
+checkout is left untouched.
 
 See `AGENTS.md` for the convention to follow when adding a new migration
 (every migration must be documented here).

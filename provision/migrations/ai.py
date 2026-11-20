@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from ..common import cmd_exists, dnf_install, run
+from ..links import ConfigLink, link_migration
 from ..models import Migration, SetupContext
 
 
@@ -102,4 +103,14 @@ def build(ctx: SetupContext) -> list[Migration]:
         Migration("install_copilot_cli", "ai", install_copilot_cli_up, install_copilot_cli_down, install_copilot_cli_check),
         Migration("configure_claude_statusline", "ai", configure_claude_statusline_up, configure_claude_statusline_down, configure_claude_statusline_check),
         Migration("install_copilot_usage_scraper", "ai", install_copilot_usage_scraper_up, install_copilot_usage_scraper_down, install_copilot_usage_scraper_check),
+        link_migration(
+            "link_ai_configs",
+            "ai",
+            [
+                ConfigLink(
+                    repo / "copilot-instructions.md",
+                    home / ".copilot" / "copilot-instructions.md",
+                ),
+            ],
+        ),
     ]

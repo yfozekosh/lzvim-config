@@ -8,6 +8,7 @@ import tempfile
 from pathlib import Path
 
 from ..common import append_line, download_file, remove_line
+from ..links import ConfigLink, link_migration
 from ..models import Migration, SetupContext
 
 BLESH_VERSION = "0.3.4"
@@ -17,6 +18,7 @@ BLESH_SHA256 = "e543a43d211fef8f52b96b2e7935e892581421f759cda4ae87563854ebc60573
 
 def build(ctx: SetupContext) -> list[Migration]:
     home = ctx.home
+    repo = ctx.repo
 
     def bashrc_source_up() -> None:
         line = "source ~/.bash_profile_yf"
@@ -67,4 +69,12 @@ def build(ctx: SetupContext) -> list[Migration]:
     return [
         Migration("bashrc_source", "shell", bashrc_source_up, bashrc_source_down, bashrc_source_check),
         Migration("install_blesh", "shell", install_blesh_up, install_blesh_down, install_blesh_check),
+        link_migration(
+            "link_shell_configs",
+            "shell",
+            [
+                ConfigLink(repo / ".bash_profile_yf", home / ".bash_profile_yf"),
+                ConfigLink(repo / ".blerc", home / ".blerc"),
+            ],
+        ),
     ]

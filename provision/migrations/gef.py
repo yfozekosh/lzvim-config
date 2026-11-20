@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 
 from ..common import run
+from ..links import ConfigLink, link_migration
 from ..models import Migration, SetupContext
 
 GEF_REPO = "https://github.com/yfozekosh/gef.git"
@@ -43,6 +44,8 @@ def is_our_checkout(target: Path) -> bool:
 
 def build(ctx: SetupContext) -> list[Migration]:
     target = ctx.home / ".local" / "share" / "gef"
+    home = ctx.home
+    repo = ctx.repo
 
     def install_gef_up() -> None:
         if is_installed(target):
@@ -88,5 +91,10 @@ def build(ctx: SetupContext) -> list[Migration]:
             install_gef_up,
             install_gef_down,
             lambda: is_installed(target),
+        ),
+        link_migration(
+            "link_gef_configs",
+            "gef",
+            [ConfigLink(repo / ".gdbinit", home / ".gdbinit")],
         ),
     ]

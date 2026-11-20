@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 
 from ..common import run, cmd_exists, distro_id, apt_install, dnf_install
+from ..links import ConfigLink, link_migration
 from ..models import Migration, SetupContext
 
 ASMLSP_COMMIT = "bacbe5eedfbfc202afe8f517faef2d5b9152bf95"
@@ -88,4 +89,15 @@ def build(ctx: SetupContext) -> list[Migration]:
 
     return [
         Migration("install_riscv_asm_tools", "embedded", install_riscv_asm_tools_up, install_riscv_asm_tools_down, install_riscv_asm_tools_check),
+        link_migration(
+            "link_embedded_configs",
+            "embedded",
+            [
+                ConfigLink(
+                    repo / "asm-lsp" / ".asm-lsp.toml",
+                    home / ".config" / "asm-lsp" / ".asm-lsp.toml",
+                ),
+                ConfigLink(repo / "scripts" / "ld-format", home / ".local" / "bin" / "ld-format"),
+            ],
+        ),
     ]
