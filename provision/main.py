@@ -60,11 +60,11 @@ def desired_features(args: argparse.Namespace, state_dir: Path) -> tuple[str, se
 
 
 def build_migrations(ctx: SetupContext) -> list[Migration]:
-    from .migrations import core, build, shell, tmux, git, node, ai, dotnet, embedded, wsl
+    from .migrations import core, build, shell, tmux, git, node, ai, dotnet, embedded, gef, wsl
 
     # build must precede tmux: tmux compiles tmux-mem-cpu-load when the build
     # feature is selected. node must precede ai/frontend migrations that use npm.
-    modules = [core, build, shell, tmux, git, node, ai, dotnet, embedded, wsl]
+    modules = [core, build, shell, tmux, git, node, ai, dotnet, embedded, gef, wsl]
     result = []
     for module in modules:
         result.extend(module.build(ctx))

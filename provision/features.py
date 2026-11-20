@@ -20,6 +20,7 @@ FEATURES: dict[str, Feature] = {
     "frontend": Feature("frontend", "TypeScript, Angular, Prettier", ("core", "node")),
     "dotnet": Feature("dotnet", ".NET SDK", ("core",)),
     "embedded": Feature("embedded", "RISC-V asm tools, clangd", ("core",)),
+    "gef": Feature("gef", "GEF debugger fork for CH32V003 (RV32EC)", ("core",)),
     "wsl": Feature("wsl", "WSL fonts, win32yank, interop fix", ("core",), auto=True),
 }
 

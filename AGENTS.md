@@ -17,7 +17,7 @@ When you add, remove, or change a migration:
    "`setup.sh` details") in the same commit. Every migration must have a row
    with its feature and what it does. Keep the table in the same order the
    migrations run in `provision/main.py` (`core`, `build`, `shell`, `tmux`, `git`,
-   `node`, `ai`, `dotnet`, `embedded`, `wsl`).
+   `node`, `ai`, `dotnet`, `embedded`, `gef`, `wsl`).
 2. Add a `Migration` object in the matching `provision/migrations/<feature>.py`
    module with `up`, `down`, and `check` callables. `up` must start with an
    external-install guard (`cmd_exists`, a file check, or an exact config

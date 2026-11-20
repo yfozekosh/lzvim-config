@@ -23,14 +23,14 @@ local function check(profile, expected_on, expected_off)
   end
 end
 
-check("minimal", { "core", "shell", "tmux", "docker", "git" }, { "build", "node", "ai", "frontend", "dotnet", "embedded" })
-check("work", { "core", "ai", "node", "docker" }, { "build", "frontend", "dotnet", "embedded" })
-check("frontend", { "core", "frontend", "node", "docker" }, { "build", "ai", "dotnet", "embedded" })
-check("embedded", { "core", "build", "embedded", "docker" }, { "node", "ai", "frontend", "dotnet" })
-check("dotnet", { "core", "dotnet", "docker" }, { "build", "node", "ai", "frontend", "embedded" })
+check("minimal", { "core", "shell", "tmux", "docker", "git" }, { "build", "node", "ai", "frontend", "dotnet", "embedded", "gef" })
+check("work", { "core", "ai", "node", "docker" }, { "build", "frontend", "dotnet", "embedded", "gef" })
+check("frontend", { "core", "frontend", "node", "docker" }, { "build", "ai", "dotnet", "embedded", "gef" })
+check("embedded", { "core", "build", "embedded", "docker", "gef" }, { "node", "ai", "frontend", "dotnet" })
+check("dotnet", { "core", "dotnet", "docker" }, { "build", "node", "ai", "frontend", "embedded", "gef" })
 check(
   "full",
-  { "core", "build", "shell", "tmux", "docker", "git", "node", "ai", "frontend", "dotnet", "embedded" },
+  { "core", "build", "shell", "tmux", "docker", "git", "node", "ai", "frontend", "dotnet", "embedded", "gef" },
   {}
 )
 
@@ -47,6 +47,7 @@ assert(custom.has("core") and custom.has("ai") and custom.has("node"), "custom s
 assert(not custom.has("build"), "custom should not inherit build")
 assert(not custom.has("frontend"), "custom should not inherit frontend")
 assert(not custom.has("docker"), "custom should not inherit docker")
+assert(not custom.has("gef"), "custom should not inherit gef")
 
 -- NVIM_PROFILE is a full override: a persisted custom selection must not
 -- disable features from the requested profile.

@@ -17,7 +17,7 @@ local PROFILES = {
   minimal = { "core", "shell", "tmux", "docker", "git" },
   work = { "core", "shell", "tmux", "docker", "git", "ai" },
   frontend = { "core", "shell", "tmux", "docker", "git", "frontend" },
-  embedded = { "core", "shell", "tmux", "docker", "git", "build", "embedded" },
+  embedded = { "core", "shell", "tmux", "docker", "git", "build", "embedded", "gef" },
   dotnet = { "core", "shell", "tmux", "docker", "git", "dotnet" },
   full = {
     "core",
@@ -31,6 +31,7 @@ local PROFILES = {
     "frontend",
     "dotnet",
     "embedded",
+    "gef",
   },
 }
 
@@ -41,6 +42,7 @@ local DEPS = {
   frontend = { "core", "node" },
   dotnet = { "core" },
   embedded = { "core" },
+  gef = { "core" },
   docker = { "tmux" },
   wsl = { "core" },
 }

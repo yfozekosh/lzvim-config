@@ -18,6 +18,7 @@ class FeatureTests(unittest.TestCase):
     def test_dependency_closure_pulls_core(self) -> None:
         self.assertEqual(dependency_closure({"ai"}), {"ai", "core", "node"})
         self.assertEqual(dependency_closure({"embedded"}), {"embedded", "core"})
+        self.assertEqual(dependency_closure({"gef"}), {"gef", "core"})
         self.assertEqual(dependency_closure({"frontend"}), {"frontend", "core", "node"})
         self.assertEqual(dependency_closure({"docker"}), {"docker", "tmux"})
 
@@ -39,6 +40,7 @@ class FeatureTests(unittest.TestCase):
                 "frontend",
                 "dotnet",
                 "embedded",
+                "gef",
             }
             <= full
         )
@@ -53,7 +55,7 @@ class FeatureTests(unittest.TestCase):
 
     def test_embedded_profile_includes_build_tools(self) -> None:
         embedded = resolve_profile("embedded")
-        self.assertTrue({"embedded", "build"} <= embedded)
+        self.assertTrue({"embedded", "build", "gef"} <= embedded)
         self.assertNotIn("frontend", embedded)
 
     def test_profiles_include_docker_panel(self) -> None:
@@ -69,6 +71,7 @@ class FeatureTests(unittest.TestCase):
         self.assertTrue(can_disable("node", {"core", "node"}))
         self.assertTrue(can_disable("ai", {"core", "ai"}))
         self.assertTrue(can_disable("docker", {"tmux", "docker"}))
+        self.assertTrue(can_disable("gef", {"core", "gef"}))
 
     def test_normalize_adds_core(self) -> None:
         self.assertIn("core", normalize_selection({"shell"}))
@@ -92,6 +95,7 @@ class FeatureTests(unittest.TestCase):
             self.assertNotIn("build", features)
             self.assertNotIn("frontend", features)
             self.assertNotIn("docker", features)
+            self.assertNotIn("gef", features)
 
 
 if __name__ == "__main__":

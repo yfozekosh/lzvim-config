@@ -106,7 +106,7 @@ class Profile:
         "minimal": ("core", "shell", "tmux", "docker", "git"),
         "work": ("core", "shell", "tmux", "docker", "git", "ai"),
         "frontend": ("core", "shell", "tmux", "docker", "git", "frontend"),
-        "embedded": ("core", "shell", "tmux", "docker", "git", "build", "embedded"),
+        "embedded": ("core", "shell", "tmux", "docker", "git", "build", "embedded", "gef"),
         "dotnet": ("core", "shell", "tmux", "docker", "git", "dotnet"),
         "full": (
             "core",
@@ -120,6 +120,7 @@ class Profile:
             "frontend",
             "dotnet",
             "embedded",
+            "gef",
         ),
     }
 

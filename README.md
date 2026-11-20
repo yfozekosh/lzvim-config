@@ -13,6 +13,7 @@
 - [C# / Roslyn troubleshooting](#c--roslyn-troubleshooting)
 - [PlatformIO / clangd (C/C++)](#platformio--clangd-cc)
 - [Assembly & linker scripts](#assembly--linker-scripts)
+- [CH32V003 GDB context view](#ch32v003-gdb-context-view)
 - [Shared clipboard (Alacritty + tmux + nvim, WSL)](#shared-clipboard-alacritty--tmux--nvim-wsl)
 - [Windows setup (Alacritty + Nerd Font)](#windows-setup-alacritty--nerd-font)
 - [Committing & pushing](#committing--pushing)
@@ -107,13 +108,13 @@ in the `provision/` Python package (stdlib only).
 - Migrations are defined in `provision/migrations/*.py` as `Migration` objects with
   `up`/`down`/`check` callables. Each migration belongs to a feature
   (`core`, `build`, `shell`, `tmux`, `docker`, `git`, `node`, `ai`,
-  `frontend`, `dotnet`, `embedded`, `wsl`).
+  `frontend`, `dotnet`, `embedded`, `gef`, `wsl`).
 - Features can be selected interactively (curses TUI with a plain numbered
   fallback) or via `--profile`, `--features`, `--all`, `--noninteractive`.
   Profiles: `minimal`, `work`, `frontend`, `embedded`, `dotnet`, `full`.
 - `core` installs `gcc` (Treesitter needs a C compiler) but not C++ or CMake;
   select `build` when you need `g++`, `make`, and `cmake`. `embedded` includes
-  `build`; `work`, `frontend`, and `dotnet` do not.
+  `build` and `gef`; `work`, `frontend`, and `dotnet` do not.
 - Selection is persisted to `~/.config/yf-nvim/features` and the active
   profile to `~/.config/yf-nvim/profile` (also readable by Neovim via
   `lua/config/profile.lua`).
@@ -165,9 +166,15 @@ in the `provision/` Python package (stdlib only).
 | `install_copilot_usage_scraper` | ai | npm + Playwright deps for usage widget |
 | `install_dotnet` | dotnet | Installs .NET SDK; down removes `~/.dotnet` and system dotnet packages |
 | `install_riscv_asm_tools` | embedded | Builds `asm-lsp` + `rvfmt` |
+| `install_gef` | gef | Clones the `yfozekosh/gef` CH32V003 fork into `~/.local/share/gef` |
 | `install_wsl_fonts` | wsl | Installs WSL fonts |
 | `install_win32yank` | wsl | Installs `win32yank.exe` |
 | `fix_wsl_interop_persistence` | wsl | Fixes WSL interop persistence |
+
+`install_gef` clones the `yfozekosh/gef` fork (branch `ch32v003-rv32ec`) into
+`~/.local/share/gef`, where the tracked `.gdbinit` loads it with the `gef`
+command. Unchecking removes only a real clone whose `origin` is that fork; a
+symlink to a development checkout is left untouched.
 
 See `AGENTS.md` for the convention to follow when adding a new migration
 (every migration must be documented here).
@@ -335,6 +342,55 @@ instruction, so post-call code is annotated; `j`/`tail` do not.
 Every instruction is annotated; a block with no statically known entry uses
 a cold fallback labeled `(no known entry)`.
 Configuration via `vim.g.disasm` (see [`docs/disasm.md`](docs/disasm.md)).
+
+## CH32V003 GDB context view
+
+An inline, GEF-style stop view for the WCH CH32V003, implemented in
+[`ch32ctx/`](ch32ctx/) with no dependency on GEF. See
+[`ch32ctx/README.md`](ch32ctx/README.md) for the full user guide, safety
+rules, and troubleshooting. `.gdbinit` loads it for the WCH toolchain GDB
+(detected through `/proc/$PPID/exe`); the xPack GDB and system GDB are left
+untouched.
+
+The view is printed once after the project auto-connect and then on every stop.
+`ctx` renders five panes: RV32EC registers with aligned hex and unsigned
+decimal values, flash-address symbol labels, and printable NUL-terminated
+strings; the stack window below `$sp`; mixed 2/4-byte RISC-V disassembly around
+`$pc`; the assembler macro invoked by the current source line, with its
+definition and arguments; and the source lines around the current line. The
+source pane uses Pygments when it is available in the GDB Python path and falls
+back to plain text otherwise.
+
+The macro pane is omitted when the current source line is not a macro call.
+Definitions are indexed from the project's `src/**/*.s` files, so includes such
+as `rcc.s` and `stk.s` are found even though the invocation is in `boot.s`.
+
+```gdb
+ctx                 # print all panes now
+ctx code macro source  # only the requested panes
+ctx all             # same as ctx
+ctx off             # stop printing automatically
+ctx on              # resume automatic printing
+ctx deref off       # fastest/safest: no pointer or string previews
+ctx mmio on         # opt in to reading APB/core peripheral registers
+```
+
+The view never reads APB or core-peripheral registers automatically: a
+peripheral read can clear bits or advance a FIFO. Registers are fetched once
+per stop, and the stack and disassembly windows are each read once.
+
+GEF is no longer auto-loaded. It remains installed and can be started
+manually with `chef`; the fork's own `context` view is independent of this
+one.
+
+Tests and checks (run from the repository root):
+
+```bash
+python3 -m unittest discover -s tests/ch32ctx -v
+uvx ruff check --target-version py38 ch32ctx tests/ch32ctx
+uvx ruff format --check ch32ctx tests/ch32ctx
+uvx mypy --python-version 3.8 --ignore-missing-imports ch32ctx tests/ch32ctx/test_target.py
+```
 
 ## Shared clipboard (Alacritty + tmux + nvim, WSL)
 
