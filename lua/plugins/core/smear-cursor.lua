@@ -27,6 +27,13 @@ return {
     damping = 0.95, -- 0.85     [0, 1]
     damping_insert_mode = 0.95, -- 0.9      [0, 1]
     distance_stop_animating = 0.5, -- 0.1      > 0
-    time_interval = 7,
+    -- 17ms (~60fps, plugin default). 7ms meant ~140 redraws/s, which is
+    -- expensive under WSL + tmux and competes with LSP responses.
+    time_interval = 17,
+
+    -- LazyVim's extra sets hide_target_hack = true, but the plugin docs say
+    -- not to enable it unless never_draw_over_target is also true; the
+    -- mismatch leaves stray characters/traces on screen.
+    hide_target_hack = false,
   },
 }

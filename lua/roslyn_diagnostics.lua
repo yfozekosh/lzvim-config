@@ -1,6 +1,6 @@
 -- Surfaces Roslyn project-load failures (missing/incompatible .NET SDK,
 -- NuGet auth failures, etc.) as a `vim.notify` instead of silently sitting
--- in `~/.local/state/nvim/lsp.log` where they're easy to miss.
+-- in the LSP log (`:LspLog`) where they're easy to miss.
 --
 -- Background: the Roslyn language server can fail to load individual
 -- `.csproj` files (e.g. wrong `dotnet` on PATH, or a private NuGet feed

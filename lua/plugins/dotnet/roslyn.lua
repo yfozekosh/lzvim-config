@@ -36,7 +36,12 @@ return {
     if ok then
       registry.refresh(function()
         local name = "roslyn-language-server"
-        if registry.has_package(name) and not registry.get_package(name):is_installed() then
+        -- Older machines have the Crashdummyy-registry package `roslyn`,
+        -- which links the same `roslyn-language-server` binary. Installing
+        -- the official package on top fails ("already linked") and was
+        -- retried - downloading the server again - on every C# launch.
+        local legacy = registry.has_package("roslyn") and registry.get_package("roslyn"):is_installed()
+        if not legacy and registry.has_package(name) and not registry.get_package(name):is_installed() then
           vim.notify("Installing " .. name .. " via Mason...", vim.log.levels.INFO)
           registry.get_package(name):install()
         end

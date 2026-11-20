@@ -70,7 +70,8 @@ different causes that often compound:
 
 If `gd` works when the target is in the *same file* but not when it's in
 another project/file, that's almost always cause (3)/(4) above (NuGet auth),
-not (1)/(2). You can confirm by checking `~/.local/state/nvim/lsp.log` for
+not (1)/(2). You can confirm by checking the LSP log (`:LspLog`; it lives in
+`$XDG_RUNTIME_DIR/nvim/lsp.log`, see `lua/config/lsp_log.lua`) for
 lines like:
 
 ```

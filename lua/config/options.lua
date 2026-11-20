@@ -30,6 +30,14 @@ if vim.fn.has("wsl") == 1 and vim.fn.executable("win32yank.exe") == 1 then
 end
 vim.opt.clipboard = "unnamedplus"
 
+-- Debug-level LSP logging with cheap summaries + ms timestamps, on tmpfs.
+-- See lua/config/lsp_log.lua.
+require("config.lsp_log").setup()
+
+-- Record main-loop freezes (>250ms) to $XDG_RUNTIME_DIR/nvim/stalls.log.
+-- See lua/config/stall_log.lua.
+require("config.stall_log").setup()
+
 if require("config.profile").has("dotnet") then
   vim.lsp.config("roslyn", {
   on_attach = function()
@@ -50,6 +58,8 @@ if require("config.profile").has("dotnet") then
       dotnet_suppress_inlay_hints_for_parameters_that_match_argument_name = true,
       dotnet_suppress_inlay_hints_for_parameters_that_match_method_intent = true,
     },
+    -- Only takes effect if LazyVim's `codelens.enabled` is turned on (it is
+    -- off by default), so this costs nothing as-is.
     ["csharp|code_lens"] = {
       dotnet_enable_references_code_lens = true,
     },
@@ -57,8 +67,13 @@ if require("config.profile").has("dotnet") then
       ["dotnet_provide_regex_completions"] = true,
       ["dotnet_show_completion_items_from_unimported_namespaces"] = true,
     },
+    -- Analyzers over the full solution are the expensive part and starve
+    -- interactive requests (gd/gI/hover), so they only run on open files.
+    -- Compiler diagnostics stay solution-wide: much cheaper, and they keep
+    -- every project's compilation warm, so the first `gr` (find references)
+    -- after startup doesn't have to build all of them on demand (~5s cold).
     ["csharp|background_analysis"] = {
-      ["dotnet_analyzer_diagnostics_scope"] = "fullSolution",
+      ["dotnet_analyzer_diagnostics_scope"] = "openFiles",
       ["dotnet_compiler_diagnostics_scope"] = "fullSolution",
     },
   },
