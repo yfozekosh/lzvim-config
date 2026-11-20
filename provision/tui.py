@@ -6,7 +6,14 @@ import curses
 from typing import Callable
 
 from .common import is_wsl
-from .features import FEATURES, can_disable, dependency_closure
+from .features import FEATURES, KIND_ORDER, can_disable, dependency_closure
+
+_KIND_RANK = {kind: index for index, kind in enumerate(KIND_ORDER)}
+
+
+def _sort_key(fid: str) -> tuple[int, str]:
+    kind = FEATURES[fid].kind
+    return (_KIND_RANK.get(kind, len(_KIND_RANK)), fid)
 
 
 class FeatureSelector:
@@ -17,7 +24,24 @@ class FeatureSelector:
         self.input_fn = input_fn or input
 
     def _available_ids(self) -> list[str]:
-        return sorted(fid for fid in FEATURES if fid != "wsl" or is_wsl())
+        return sorted(
+            (
+                fid
+                for fid in FEATURES
+                if not FEATURES[fid].auto or is_wsl()
+            ),
+            key=_sort_key,
+        )
+
+    def _toggle(self, fid: str) -> None:
+        if fid in self.selected:
+            if can_disable(fid, self.selected):
+                self.selected.discard(fid)
+            else:
+                print(f"cannot disable {fid}: a dependent is enabled")
+        else:
+            self.selected.add(fid)
+            self.selected = dependency_closure(self.selected)
 
     def run_plain(self) -> set[str]:
         """Numbered prompt fallback (no curses)."""
@@ -25,23 +49,16 @@ class FeatureSelector:
         while True:
             print("\nSelect features (toggle by number, 'd' done):")
             for index, fid in enumerate(ids, start=1):
+                feature = FEATURES[fid]
                 mark = "x" if fid in self.selected else " "
-                print(f"  {index}) [{mark}] {fid:10} {FEATURES[fid].description}")
+                print(f"  {index:2}) [{mark}] {feature.kind:9} {fid:16} {feature.description}")
             raw = self.input_fn("choice> ").strip().lower()
             if raw in {"d", "done", "q"}:
                 break
             if raw.isdigit():
                 idx = int(raw) - 1
                 if 0 <= idx < len(ids):
-                    fid = ids[idx]
-                    if fid in self.selected:
-                        if can_disable(fid, self.selected):
-                            self.selected.discard(fid)
-                        else:
-                            print(f"cannot disable {fid}: a dependent is enabled")
-                    else:
-                        self.selected.add(fid)
-                        self.selected = dependency_closure(self.selected)
+                    self._toggle(ids[idx])
         return set(self.selected)
 
     def run_curses(self, stdscr: "curses._CursesWindow") -> set[str]:  # type: ignore[attr-defined]
@@ -52,8 +69,9 @@ class FeatureSelector:
             stdscr.clear()
             stdscr.addstr(0, 0, "Select features (Up/Down, Space toggle, Enter done)")
             for index, fid in enumerate(ids):
+                feature = FEATURES[fid]
                 mark = "x" if fid in self.selected else " "
-                line = f"  [{mark}] {fid:10} {FEATURES[fid].description}"
+                line = f"  [{mark}] {feature.kind:9} {fid:16} {feature.description}"
                 if index == pos:
                     stdscr.addstr(index + 2, 0, line, curses.A_REVERSE)
                 else:
@@ -70,13 +88,7 @@ class FeatureSelector:
                 else:
                     index = key - ord("1")
                 if 0 <= index < len(ids):
-                    fid = ids[index]
-                    if fid in self.selected:
-                        if can_disable(fid, self.selected):
-                            self.selected.discard(fid)
-                    else:
-                        self.selected.add(fid)
-                        self.selected = dependency_closure(self.selected)
+                    self._toggle(ids[index])
             elif key in (10, 13, curses.KEY_ENTER, ord("d")):
                 break
             elif key == ord("q"):

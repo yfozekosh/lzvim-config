@@ -1,8 +1,9 @@
 """Node.js feature migrations.
 
-Both ``ai`` (Copilot CLI) and ``frontend`` (TypeScript/Angular/Prettier
-tooling) depend on this feature, so a frontend-only profile gets Node without
-pulling in Copilot or the Claude status line.
+Both ``copilot`` and ``copilot-usage`` (Copilot CLI and its tmux widget),
+plus ``frontend`` (TypeScript/Angular/Prettier tooling), depend on this
+feature, so a frontend-only profile gets Node without pulling in Copilot or
+the Claude status line.
 """
 
 from __future__ import annotations

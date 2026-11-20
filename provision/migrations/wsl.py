@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..common import apt_install, dnf_install, distro_id, run, cmd_exists
+from ..common import apt_install, dnf_install, run, cmd_exists
 from ..models import Migration, SetupContext
 
 
@@ -119,7 +119,7 @@ def build(ctx: SetupContext) -> list[Migration]:
         return "WSLInterop:M::MZ::/init" in read_wsl_conf()
 
     return [
-        Migration("install_wsl_fonts", "wsl", install_wsl_fonts_up, install_wsl_fonts_down, install_wsl_fonts_check),
-        Migration("install_win32yank", "wsl", install_win32yank_up, install_win32yank_down, install_win32yank_check),
-        Migration("fix_wsl_interop_persistence", "wsl", fix_wsl_interop_persistence_up, fix_wsl_interop_persistence_down, fix_wsl_interop_persistence_check),
+        Migration("install_wsl_fonts", "wsl-fonts", install_wsl_fonts_up, install_wsl_fonts_down, install_wsl_fonts_check),
+        Migration("install_win32yank", "wsl-clipboard", install_win32yank_up, install_win32yank_down, install_win32yank_check),
+        Migration("fix_wsl_interop_persistence", "wsl-interop", fix_wsl_interop_persistence_up, fix_wsl_interop_persistence_down, fix_wsl_interop_persistence_check),
     ]

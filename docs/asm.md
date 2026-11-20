@@ -23,8 +23,8 @@ highlights normally.
 ## RISC-V LSP & formatter
 
 RISC-V GNU assembler (`.s`/`.S`) gets both an LSP and a formatter. Both tools
-are installed by `setup.sh`'s `install_riscv_asm_tools` migration into
-`~/.local/bin`.
+are installed by `setup.sh`'s `install_asm_lsp` and `install_rvfmt` migrations
+into `~/.local/bin`.
 
 ### LSP: asm-lsp
 

@@ -1,0 +1,163 @@
+{
+  "kinds": [
+    "base",
+    "editor",
+    "toolchain",
+    "tool",
+    "dotfiles",
+    "widget",
+    "platform"
+  ],
+  "features": {
+    "core": {
+      "description": "Base OS packages (gcc, tmux, git, nvim), download tools",
+      "depends": [],
+      "kind": "base"
+    },
+    "nvim": {
+      "description": "Neovim plugin bootstrap and stale-state pruning",
+      "depends": ["core"],
+      "kind": "editor"
+    },
+    "build": {
+      "description": "C++ toolchain, CMake, make",
+      "depends": ["core"],
+      "kind": "toolchain"
+    },
+    "shell": {
+      "description": "bash profile, ble.sh",
+      "depends": [],
+      "kind": "dotfiles"
+    },
+    "tmux": {
+      "description": "TPM, tmux plugins, mem-cpu-load",
+      "depends": [],
+      "kind": "dotfiles"
+    },
+    "docker": {
+      "description": "Docker container count in tmux status bar",
+      "depends": ["tmux"],
+      "kind": "widget"
+    },
+    "git": {
+      "description": "GitHub CLI, lazygit",
+      "depends": [],
+      "kind": "tool"
+    },
+    "node": {
+      "description": "Node.js + npm",
+      "depends": ["core"],
+      "kind": "toolchain"
+    },
+    "copilot": {
+      "description": "GitHub Copilot CLI, editor completion, instructions",
+      "depends": ["core", "node"],
+      "kind": "tool"
+    },
+    "claude": {
+      "description": "Claude Code status line",
+      "depends": ["core"],
+      "kind": "tool"
+    },
+    "copilot-usage": {
+      "description": "Copilot usage scraper and tmux widget dependencies",
+      "depends": ["core", "node"],
+      "kind": "widget"
+    },
+    "frontend": {
+      "description": "TypeScript, Angular, Prettier",
+      "depends": ["core", "node", "nvim"],
+      "kind": "editor"
+    },
+    "dotnet": {
+      "description": ".NET SDK",
+      "depends": ["core"],
+      "kind": "toolchain"
+    },
+    "riscv-asm": {
+      "description": "RISC-V assembly tools (asm-lsp, rvfmt)",
+      "depends": ["core"],
+      "kind": "toolchain"
+    },
+    "clangd": {
+      "description": "clangd and PlatformIO C/C++ support",
+      "depends": ["core", "nvim"],
+      "kind": "editor"
+    },
+    "gef": {
+      "description": "GEF debugger fork for CH32V003 (RV32EC)",
+      "depends": ["core"],
+      "kind": "tool"
+    },
+    "wsl-fonts": {
+      "description": "WSL terminal fonts",
+      "depends": ["core"],
+      "kind": "platform",
+      "auto": true
+    },
+    "wsl-clipboard": {
+      "description": "win32yank clipboard bridge",
+      "depends": ["core"],
+      "kind": "platform",
+      "auto": true
+    },
+    "wsl-interop": {
+      "description": "Persistent WSL interop binfmt fix",
+      "depends": ["core"],
+      "kind": "platform",
+      "auto": true
+    }
+  },
+  "profiles": {
+    "minimal": ["core", "nvim", "shell", "tmux", "docker", "git"],
+    "work": [
+      "core",
+      "nvim",
+      "shell",
+      "tmux",
+      "docker",
+      "git",
+      "copilot",
+      "claude",
+      "copilot-usage"
+    ],
+    "frontend": ["core", "nvim", "shell", "tmux", "docker", "git", "frontend"],
+    "embedded": [
+      "core",
+      "nvim",
+      "shell",
+      "tmux",
+      "docker",
+      "git",
+      "build",
+      "riscv-asm",
+      "clangd",
+      "gef"
+    ],
+    "dotnet": ["core", "nvim", "shell", "tmux", "docker", "git", "dotnet"],
+    "full": [
+      "core",
+      "nvim",
+      "build",
+      "shell",
+      "tmux",
+      "docker",
+      "git",
+      "node",
+      "copilot",
+      "claude",
+      "copilot-usage",
+      "frontend",
+      "dotnet",
+      "riscv-asm",
+      "clangd",
+      "gef"
+    ]
+  },
+  "aliases": {
+    "ai": ["copilot", "claude", "copilot-usage"],
+    "embedded": ["riscv-asm", "clangd"],
+    "wsl": ["wsl-fonts", "wsl-clipboard", "wsl-interop"]
+  },
+  "legacy_core_implies": ["nvim"]
+}

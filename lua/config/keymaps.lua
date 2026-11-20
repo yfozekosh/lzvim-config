@@ -13,7 +13,7 @@ vim.keymap.set("n", "<C-a>", "ggVG", { desc = "Select All (Normal)" })
 vim.keymap.set("i", "<C-a>", "<Esc>ggVG", { desc = "Select All (Insert)" })
 
 -- Accept Copilot inline suggestion with Tab in insert mode
-if require("config.profile").has("ai") then
+if require("config.profile").has("copilot") then
   vim.keymap.set("i", "<Tab>", function()
     return require("copilot.suggestion").accept() or "\t"
   end, { expr = true, desc = "Accept Copilot suggestion" })

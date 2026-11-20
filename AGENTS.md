@@ -16,10 +16,12 @@ When you add, remove, or change a migration:
 1. **Always update the migrations table in `README.md`** (under
    "`setup.sh` details") in the same commit. Every migration must have a row
    with its feature and what it does. Keep the table in the same order the
-   migrations run in `provision/main.py` (`core`, `build`, `shell`, `tmux`, `git`,
-   `node`, `ai`, `dotnet`, `embedded`, `gef`, `wsl`).
-2. Add a `Migration` object in the matching `provision/migrations/<feature>.py`
-   module with `up`, `down`, and `check` callables. `up` must start with an
+   migrations run in `provision/main.py` (`core`, `nvim`, `build`, `shell`,
+   `tmux`, `git`, `node`, `ai`, `dotnet`, `embedded`, `gef`, `wsl`).
+2. Add a `Migration` object in the matching `provision/migrations/<area>.py`
+   module with `up`, `down`, and `check` callables (one module may own several
+   related features, e.g. `ai.py` owns `copilot`, `claude`, and
+   `copilot-usage`). `up` must start with an
    external-install guard (`cmd_exists`, a file check, or an exact config
    grep) so an existing target is recorded without overwriting it. `down`
    must remove exactly what `up` added; remove shared OS packages only when
@@ -29,11 +31,15 @@ When you add, remove, or change a migration:
    differs. For unsupported distros, print a warning with manual install
    instructions and return rather than aborting the whole run - unless the
    missing dependency is required by every subsequent migration.
-4. Document feature dependencies in `provision/features.py`. If a migration
-   depends on something installed by an earlier migration (e.g. needing
-   `npm`), place it after that migration and mention the dependency in a
-   comment. `core` deliberately keeps `gcc` for Treesitter but leaves C++,
-   `make`, and CMake to `build`; `node` is shared by `ai` and `frontend`.
+4. Document feature dependencies in `features.json` (loaded by
+   `provision/features.py` and `lua/config/profile.lua`). Keep the `ai`,
+   `embedded`, and `wsl` alias lists there in sync when renaming features. If
+   a migration depends on something installed by an earlier migration (e.g.
+   needing `npm`), place it after that migration and mention the dependency in
+   a comment. `core` deliberately keeps `gcc` for Treesitter but leaves C++,
+   `make`, and CMake to `build`; `node` is shared by `copilot`,
+   `copilot-usage`, and `frontend`; `clangd` is editor-only while `riscv-asm`
+   owns the host asm tools.
 5. Never commit or install secrets/credentials as part of a migration.
    Credential/session files for tools like the Copilot usage scraper live
    outside the repo (e.g. `~/.config/copilot-usage/`), never inside it.

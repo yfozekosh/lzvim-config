@@ -5,7 +5,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from ..common import apt_install, dnf_install, distro_id, run, cmd_exists
+from ..common import apt_install, dnf_install, run, cmd_exists, sudo
 from ..models import Migration, SetupContext
 
 
@@ -51,6 +51,27 @@ def build(ctx: SetupContext) -> list[Migration]:
     def install_gh_cli_check() -> bool:
         return cmd_exists("gh")
 
+    def install_lazygit_up() -> None:
+        if install_lazygit_check():
+            print("lazygit already installed (external) - recording migration")
+            return
+        if distro == "fedora":
+            run(["dnf", "copr", "enable", "-y", "atim/lazygit"])
+            dnf_install(["lazygit"])
+        else:
+            print("WARNING: install_lazygit only supports Fedora; install manually.")
+
+    def install_lazygit_down() -> None:
+        if ctx.purge and distro == "fedora":
+            run(sudo(["dnf", "remove", "-y", "lazygit"]), check=False)
+            run(sudo(["dnf", "copr", "disable", "-y", "atim/lazygit"]), check=False)
+        elif cmd_exists("lazygit"):
+            print("NOTE: lazygit remains (run with --purge to remove).")
+
+    def install_lazygit_check() -> bool:
+        return cmd_exists("lazygit")
+
     return [
         Migration("install_gh_cli", "git", install_gh_cli_up, install_gh_cli_down, install_gh_cli_check),
+        Migration("install_lazygit", "git", install_lazygit_up, install_lazygit_down, install_lazygit_check),
     ]

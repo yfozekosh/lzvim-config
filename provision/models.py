@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Iterable
-from .common import is_wsl
+from .manifest import PROFILES
 import os
 import platform
 
@@ -96,33 +96,14 @@ class Feature:
     id: str
     description: str
     depends: tuple[str, ...] = ()
-    auto: bool = False  # enabled automatically (e.g. wsl on WSL)
+    auto: bool = False  # enabled automatically on a matching platform
+    kind: str = "tool"  # base/editor/toolchain/tool/dotfiles/widget/platform
 
 
 class Profile:
     """Named preset of features."""
 
-    PRESETS: dict[str, tuple[str, ...]] = {
-        "minimal": ("core", "shell", "tmux", "docker", "git"),
-        "work": ("core", "shell", "tmux", "docker", "git", "ai"),
-        "frontend": ("core", "shell", "tmux", "docker", "git", "frontend"),
-        "embedded": ("core", "shell", "tmux", "docker", "git", "build", "embedded", "gef"),
-        "dotnet": ("core", "shell", "tmux", "docker", "git", "dotnet"),
-        "full": (
-            "core",
-            "build",
-            "shell",
-            "tmux",
-            "docker",
-            "git",
-            "node",
-            "ai",
-            "frontend",
-            "dotnet",
-            "embedded",
-            "gef",
-        ),
-    }
+    PRESETS = PROFILES
 
     def __init__(self, name: str, features: set[str]) -> None:
         self.name = name
@@ -132,10 +113,7 @@ class Profile:
     def from_name(cls, name: str) -> "Profile":
         if name not in cls.PRESETS:
             raise ValueError(f"unknown profile: {name}")
-        features = set(cls.PRESETS[name])
-        if is_wsl():
-            features.add("wsl")
-        return cls(name, features)
+        return cls(name, set(cls.PRESETS[name]))
 
     def has(self, feature: str) -> bool:
         return feature in self.features

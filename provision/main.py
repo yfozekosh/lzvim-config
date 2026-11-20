@@ -11,11 +11,13 @@ from .common import distro_id
 from .features import (
     FEATURES,
     all_feature_ids,
+    expand_aliases,
     load_selection,
     save_selection,
     resolve_profile,
     normalize_selection,
 )
+from .manifest import PROFILES
 from .models import Migration, MigrationLog, SetupContext
 from .tui import FeatureSelector
 
@@ -24,7 +26,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Yurii's config setup")
     parser.add_argument(
         "--profile",
-        choices=["minimal", "work", "frontend", "embedded", "dotnet", "full"],
+        choices=list(PROFILES),
         help="profile preset",
     )
     parser.add_argument("--features", help="comma-separated feature list")
@@ -50,7 +52,7 @@ def desired_features(args: argparse.Namespace, state_dir: Path) -> tuple[str, se
         return "full", normalize_selection(set(all_feature_ids()))
     if args.features:
         requested = {item.strip() for item in args.features.split(",") if item.strip()}
-        unknown = requested - FEATURES.keys()
+        unknown = expand_aliases(requested) - FEATURES.keys()
         if unknown:
             raise SystemExit(f"unknown feature(s): {', '.join(sorted(unknown))}")
         return "custom", normalize_selection(requested)
@@ -60,11 +62,11 @@ def desired_features(args: argparse.Namespace, state_dir: Path) -> tuple[str, se
 
 
 def build_migrations(ctx: SetupContext) -> list[Migration]:
-    from .migrations import core, build, shell, tmux, git, node, ai, dotnet, embedded, gef, wsl
+    from .migrations import ai, build, core, dotnet, embedded, gef, git, node, nvim, shell, tmux, wsl
 
-    # build must precede tmux: tmux compiles tmux-mem-cpu-load when the build
-    # feature is selected. node must precede ai/frontend migrations that use npm.
-    modules = [core, build, shell, tmux, git, node, ai, dotnet, embedded, gef, wsl]
+    # nvim runs after core installs neovim; build must precede tmux (it
+    # compiles tmux-mem-cpu-load when selected); node must precede ai/frontend.
+    modules = [core, nvim, build, shell, tmux, git, node, ai, dotnet, embedded, gef, wsl]
     result = []
     for module in modules:
         result.extend(module.build(ctx))

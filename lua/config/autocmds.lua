@@ -28,7 +28,7 @@ vim.api.nvim_create_autocmd("FileType", {
 -- e.g. vim.api.nvim_del_augroup_by_name("lazyvim_wrap_spell")
 
 
-if require("config.profile").has("embedded") then
+if require("config.profile").has("clangd") then
 -- PlatformIO: keep compile_commands.json fresh so clangd can resolve headers.
 --
 -- clangd needs a compilation database; without one every `#include` in a

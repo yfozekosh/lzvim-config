@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from provision.migrations.core import nvim_plugins_bootstrapped
+from provision.migrations.nvim import nvim_plugins_bootstrapped
 
 
 class NvimBootstrapCheckTest(unittest.TestCase):

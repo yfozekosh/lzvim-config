@@ -27,12 +27,12 @@ FEATURE_LINKS = [
     ),
     (
         ai,
-        "link_ai_configs",
+        "link_copilot_configs",
         [("copilot-instructions.md", ".copilot/copilot-instructions.md")],
     ),
     (
         embedded,
-        "link_embedded_configs",
+        "link_riscv_asm_configs",
         [
             ("asm-lsp/.asm-lsp.toml", ".config/asm-lsp/.asm-lsp.toml"),
             ("scripts/ld-format", ".local/bin/ld-format"),

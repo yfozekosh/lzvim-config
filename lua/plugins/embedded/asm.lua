@@ -74,7 +74,7 @@ return {
     end,
     opts = {
       servers = {
-        -- Installed into ~/.local/bin by setup.sh's install_riscv_asm_tools
+        -- Installed into ~/.local/bin by setup.sh's install_asm_lsp
         -- migration; don't let Mason build a second copy.
         asm_lsp = {
           mason = false,

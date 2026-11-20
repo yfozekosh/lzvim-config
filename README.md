@@ -106,15 +106,28 @@ in the `provision/` Python package (stdlib only).
 
 **How it works:**
 - Migrations are defined in `provision/migrations/*.py` as `Migration` objects with
-  `up`/`down`/`check` callables. Each migration belongs to a feature
-  (`core`, `build`, `shell`, `tmux`, `docker`, `git`, `node`, `ai`,
-  `frontend`, `dotnet`, `embedded`, `gef`, `wsl`).
+  `up`/`down`/`check` callables. Each migration belongs to a feature. The
+  canonical feature and profile definitions live in `features.json`, which
+  both the Python installer and `lua/config/profile.lua` read, so the two
+  cannot drift: `core`, `nvim`, `build`, `shell`, `tmux`, `docker`, `git`,
+  `node`, `copilot`, `claude`, `copilot-usage`, `frontend`, `dotnet`,
+  `riscv-asm`, `clangd`, `gef`, `wsl-fonts`, `wsl-clipboard`, `wsl-interop`.
+- Each feature has a `kind` (`base`, `editor`, `toolchain`, `tool`,
+  `dotfiles`, `widget`, `platform`) used to group the selector. `docker`,
+  `frontend`, and `clangd` are editor/widget-only and have no migrations.
+- Legacy aggregate names remain valid in `--features` and persisted
+  selections: `ai` expands to `copilot`, `claude`, `copilot-usage`;
+  `embedded` to `riscv-asm`, `clangd`; `wsl` to the three `wsl-*` features.
+- WSL platform features (`wsl-fonts`, `wsl-clipboard`, `wsl-interop`) are
+  selected automatically on WSL; an explicit `off` in the interactive or
+  persisted selection wins.
 - Features can be selected interactively (curses TUI with a plain numbered
   fallback) or via `--profile`, `--features`, `--all`, `--noninteractive`.
   Profiles: `minimal`, `work`, `frontend`, `embedded`, `dotnet`, `full`.
 - `core` installs `gcc` (Treesitter needs a C compiler) but not C++ or CMake;
   select `build` when you need `g++`, `make`, and `cmake`. `embedded` includes
-  `build` and `gef`; `work`, `frontend`, and `dotnet` do not.
+  `build`, `riscv-asm`, `clangd`, and `gef`; `work`, `frontend`, and `dotnet`
+  do not.
 - Selection is persisted to `~/.config/yf-nvim/features` and the active
   profile to `~/.config/yf-nvim/profile` (also readable by Neovim via
   `lua/config/profile.lua`).
@@ -126,9 +139,10 @@ in the `provision/` Python package (stdlib only).
   target without writing another `apply` record).
 - `up` migrations check for externally installed targets and skip
   installation when present, still recording the migration.
-- Dependencies between features are closed automatically (e.g. `ai` pulls in
-  `core` and `node`; `frontend` pulls in `core` and `node`; `docker` pulls in
-  `tmux`).
+- Dependencies between features are closed automatically (e.g. `copilot` and
+  `copilot-usage` pull in `core` and `node`; `frontend` pulls in `core`,
+  `node`, and `nvim`; `clangd` pulls in `core` and `nvim`; `claude` and `gef`
+  pull in `core`; `docker` pulls in `tmux`).
 - To force a migration to re-run, delete all of its lines from
   `~/.yf_setup_migrationlog` (or the whole file to rerun everything), or
   append an `apply <name> ...` record.
@@ -136,7 +150,8 @@ in the `provision/` Python package (stdlib only).
 **Selection and flags:**
 - `./setup.sh` with a TTY and no saved selection opens the interactive feature selector.
 - `--profile NAME` (`minimal`, `work`, `frontend`, `embedded`, `dotnet`, `full`)
-- `--features core,ai,...`
+- `--features core,copilot,riscv-asm,...` (aliases `ai`, `embedded`, and
+  `wsl` are still accepted)
 - `--all`
 - `--interactive`, `--noninteractive`
 - `--purge` (or `SETUP_PURGE=1`) allows down migrations to remove OS packages.
@@ -147,9 +162,8 @@ in the `provision/` Python package (stdlib only).
 | Migration | Feature | What it does |
 |---|---|---|
 | `install_packages` | core | Installs `tmux`, `git`, `gcc`, `neovim`, `bat`, `fastfetch`, `vim`, download tools |
-| `install_lazygit` | core | Installs `lazygit` |
-| `bootstrap_nvim_plugins` | core | Headless nvim plugin/parser/Mason bootstrap (skipped on Raspberry Pi, which runs the plugin-free config) |
-| `prune_nvim_state` | core | Runs every setup: removes lazy plugins, Mason packages and treesitter parsers the current profile no longer declares (`scripts/headless_prune.lua`; `YF_NVIM_PRUNE_DRY=1` to preview). Keeps `lazy-lock.json` unchanged |
+| `bootstrap_nvim_plugins` | nvim | Headless nvim plugin/parser/Mason bootstrap (skipped on Raspberry Pi, which runs the plugin-free config) |
+| `prune_nvim_state` | nvim | Runs every setup: removes lazy plugins, Mason packages and treesitter parsers the current profile no longer declares (`scripts/headless_prune.lua`; `YF_NVIM_PRUNE_DRY=1` to preview). Keeps `lazy-lock.json` unchanged |
 | `install_cmake` | build | Installs `cmake` |
 | `install_build_essentials` | build | Installs `g++`/`build-essential` and `make` |
 | `bashrc_source` | shell | Adds `source ~/.bash_profile_yf` to `~/.bashrc` |
@@ -160,19 +174,21 @@ in the `provision/` Python package (stdlib only).
 | `install_tmux_mem_cpu_load` | tmux | Compiles it with `build`, otherwise installs the pinned prebuilt; updates an older installed version |
 | `link_tmux_configs` | tmux | Symlinks `~/.tmux.conf` and `~/.tmux/scripts` |
 | `install_gh_cli` | git | Installs GitHub CLI |
-| `install_nodejs` | node | Installs Node.js + npm (shared by `ai` and `frontend`) |
-| `install_copilot_cli` | ai | Installs GitHub Copilot CLI |
-| `configure_claude_statusline` | ai | Points Claude Code status line at repo script |
-| `install_copilot_usage_scraper` | ai | npm + Playwright deps for usage widget |
-| `link_ai_configs` | ai | Symlinks `~/.copilot/copilot-instructions.md` |
+| `install_lazygit` | git | Installs `lazygit` |
+| `install_nodejs` | node | Installs Node.js + npm (shared by `copilot`, `copilot-usage`, and `frontend`) |
+| `install_copilot_cli` | copilot | Installs GitHub Copilot CLI |
+| `configure_claude_statusline` | claude | Points Claude Code status line at repo script |
+| `install_copilot_usage_scraper` | copilot-usage | npm + Playwright deps for the Copilot usage widget |
+| `link_copilot_configs` | copilot | Symlinks `~/.copilot/copilot-instructions.md` |
 | `install_dotnet` | dotnet | Installs .NET SDK; down removes `~/.dotnet` and system dotnet packages |
-| `install_riscv_asm_tools` | embedded | Builds `asm-lsp` + `rvfmt` |
-| `link_embedded_configs` | embedded | Symlinks the asm-lsp config and `~/.local/bin/ld-format` |
+| `install_asm_lsp` | riscv-asm | Builds `asm-lsp` |
+| `install_rvfmt` | riscv-asm | Builds `rvfmt` |
+| `link_riscv_asm_configs` | riscv-asm | Symlinks the asm-lsp config and `~/.local/bin/ld-format` |
 | `install_gef` | gef | Clones the `yfozekosh/gef` CH32V003 fork into `~/.local/share/gef` |
 | `link_gef_configs` | gef | Symlinks `~/.gdbinit` |
-| `install_wsl_fonts` | wsl | Installs WSL fonts |
-| `install_win32yank` | wsl | Installs `win32yank.exe` |
-| `fix_wsl_interop_persistence` | wsl | Fixes WSL interop persistence |
+| `install_wsl_fonts` | wsl-fonts | Installs WSL fonts |
+| `install_win32yank` | wsl-clipboard | Installs `win32yank.exe` |
+| `fix_wsl_interop_persistence` | wsl-interop | Fixes WSL interop persistence |
 
 `install_gef` clones the `yfozekosh/gef` fork (branch `ch32v003-rv32ec`) into
 `~/.local/share/gef`, where the tracked `.gdbinit` loads it with the `gef`

@@ -26,10 +26,10 @@ local spec = {
 if profile.has("git") then
   table.insert(spec, { import = "lazyvim.plugins.extras.lang.git" })
 end
-if profile.has("embedded") then
+if profile.has("clangd") then
   table.insert(spec, { import = "lazyvim.plugins.extras.lang.clangd" })
 end
-if profile.has("ai") then
+if profile.has("copilot") then
   table.insert(spec, { import = "lazyvim.plugins.extras.ai.copilot-chat" })
 end
 if profile.has("frontend") then
@@ -40,13 +40,13 @@ end
 
 -- Feature-owned plugin modules.
 table.insert(spec, { import = "plugins.core" })
-if profile.has("ai") then
+if profile.has("copilot") then
   table.insert(spec, { import = "plugins.ai" })
 end
 if profile.has("dotnet") then
   table.insert(spec, { import = "plugins.dotnet" })
 end
-if profile.has("embedded") then
+if profile.has("riscv-asm") then
   table.insert(spec, { import = "plugins.embedded" })
 end
 

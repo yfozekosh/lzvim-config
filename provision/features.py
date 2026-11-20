@@ -5,24 +5,21 @@ from __future__ import annotations
 from pathlib import Path
 
 from .common import is_wsl
+from .manifest import ALIASES, FEATURES as FEATURE_DATA, KINDS, LEGACY_CORE_IMPLIES
 from .models import Feature, Profile
 
 
 FEATURES: dict[str, Feature] = {
-    "core": Feature("core", "Base packages (gcc, tmux, git, nvim), lazygit"),
-    "build": Feature("build", "C++ toolchain, CMake, make", ("core",)),
-    "shell": Feature("shell", "bash profile, ble.sh"),
-    "tmux": Feature("tmux", "TPM, tmux plugins, mem-cpu-load"),
-    "docker": Feature("docker", "Docker container count in tmux status bar", ("tmux",)),
-    "git": Feature("git", "GitHub CLI"),
-    "node": Feature("node", "Node.js + npm", ("core",)),
-    "ai": Feature("ai", "Copilot CLI, Claude statusline, usage scraper", ("core", "node")),
-    "frontend": Feature("frontend", "TypeScript, Angular, Prettier", ("core", "node")),
-    "dotnet": Feature("dotnet", ".NET SDK", ("core",)),
-    "embedded": Feature("embedded", "RISC-V asm tools, clangd", ("core",)),
-    "gef": Feature("gef", "GEF debugger fork for CH32V003 (RV32EC)", ("core",)),
-    "wsl": Feature("wsl", "WSL fonts, win32yank, interop fix", ("core",), auto=True),
+    fid: Feature(
+        fid,
+        data["description"],
+        tuple(data.get("depends", ())),
+        bool(data.get("auto", False)),
+        data.get("kind", "tool"),
+    )
+    for fid, data in FEATURE_DATA.items()
 }
+KIND_ORDER: tuple[str, ...] = KINDS
 
 
 def all_feature_ids() -> list[str]:
@@ -30,20 +27,34 @@ def all_feature_ids() -> list[str]:
 
 
 def auto_features() -> set[str]:
+    """Features enabled automatically for the current platform."""
+    if not is_wsl():
+        return set()
+    return {fid for fid, feature in FEATURES.items() if feature.auto}
+
+
+def expand_aliases(features: set[str]) -> set[str]:
+    """Expand legacy feature names (ai, embedded, wsl) to their components."""
     result: set[str] = set()
-    if is_wsl():
-        result.add("wsl")
+    for fid in features:
+        result.update(ALIASES.get(fid, (fid,)))
     return result
 
 
 def normalize_selection(features: set[str]) -> set[str]:
-    """Apply mandatory core, WSL auto-detection, and dependency closure."""
-    result = set(features)
+    """Apply mandatory core, drop inapplicable platform features, close deps.
+
+    Auto features are not added here: they are defaults applied by profile
+    resolution/loading, so an explicit interactive opt-out survives.
+    """
+    result = expand_aliases(set(features))
+    applicable = auto_features()
+    result = {
+        fid
+        for fid in result
+        if fid in FEATURES and (FEATURES[fid].auto is False or fid in applicable)
+    }
     result.add("core")
-    if is_wsl():
-        result.add("wsl")
-    else:
-        result.discard("wsl")
     return dependency_closure(result)
 
 
@@ -73,9 +84,21 @@ def can_disable(feature_id: str, selected: set[str]) -> bool:
 
 def resolve_profile(name: str) -> set[str]:
     profile = Profile.from_name(name)
-    features = set(profile.features)
+    features = expand_aliases(set(profile.features))
     features |= auto_features()
     return dependency_closure(features)
+
+
+def _canonical_overrides(raw: dict[str, bool]) -> dict[str, bool]:
+    """Expand aliases while preserving file order (last entry wins)."""
+    result: dict[str, bool] = {}
+    for key, enabled in raw.items():
+        if key in FEATURES:
+            result[key] = enabled
+        elif key in ALIASES:
+            for fid in ALIASES[key]:
+                result[fid] = enabled
+    return result
 
 
 def load_selection(path: Path, default_profile: str = "full") -> tuple[str, set[str]]:
@@ -84,7 +107,7 @@ def load_selection(path: Path, default_profile: str = "full") -> tuple[str, set[
         features = resolve_profile(default_profile)
         return default_profile, features
     profile_name = default_profile
-    overrides: dict[str, bool] = {}
+    raw_overrides: dict[str, bool] = {}
     for raw in path.read_text(encoding="utf-8").splitlines():
         raw = raw.strip()
         if not raw:
@@ -94,7 +117,8 @@ def load_selection(path: Path, default_profile: str = "full") -> tuple[str, set[
             continue
         if "=" in raw:
             key, value = raw.split("=", 1)
-            overrides[key.strip()] = value.strip().lower() in {"1", "true", "on", "yes"}
+            raw_overrides[key.strip()] = value.strip().lower() in {"1", "true", "on", "yes"}
+    overrides = _canonical_overrides(raw_overrides)
     if profile_name == "custom":
         # Interactive selections store every feature explicitly. Features
         # added in a newer version stay off until the user opts in, instead of
@@ -107,17 +131,24 @@ def load_selection(path: Path, default_profile: str = "full") -> tuple[str, set[
             profile_name = default_profile
             features = resolve_profile(default_profile)
     for fid, enabled in overrides.items():
-        if fid in FEATURES:
-            if enabled:
+        if enabled:
+            features.add(fid)
+        else:
+            features.discard(fid)
+
+    if profile_name == "custom":
+        # Before the nvim split, bootstrap/prune lived in core. Keep existing
+        # custom selections working unless they explicitly disabled nvim.
+        if overrides.get("core") and "nvim" not in overrides:
+            features.update(LEGACY_CORE_IMPLIES)
+        # Platform features are environment defaults; an explicit off entry
+        # (written by the interactive selector) wins.
+        for fid in auto_features():
+            if overrides.get(fid) is not False:
                 features.add(fid)
-            else:
-                features.discard(fid)
+
     features.add("core")
-    features |= auto_features()
-    if not is_wsl():
-        features.discard("wsl")
-    features = dependency_closure(features)
-    return profile_name, features
+    return profile_name, normalize_selection(features)
 
 
 def save_selection(path: Path, profile_name: str, features: set[str]) -> None:

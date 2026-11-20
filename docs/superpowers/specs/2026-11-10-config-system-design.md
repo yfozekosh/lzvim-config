@@ -3,6 +3,12 @@
 Date: 2026-11-10
 Status: implemented
 
+> Superseded on 2026-11-20: the aggregate `ai`, `embedded`, and `wsl`
+> features were split, and the canonical feature/profile definitions now live
+> in `features.json` (shared by Python and Neovim). See `README.md` for the
+> current feature and migration tables; this document records the original
+> design.
+
 ## Intent
 
 The repository mixes several unrelated concerns (base editor, AI tooling, frontend, .NET, embedded/RISC-V, WSL glue) in one flat tree, and `setup.sh` used to be a single growing list of migrations guarded only by an append-only log. We need to choose a subset of the config, add/remove that subset later, and keep Neovim from even loading plugins that belong to a disabled area.
