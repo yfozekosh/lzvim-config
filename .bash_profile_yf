@@ -31,7 +31,7 @@ if command -v tmux &>/dev/null && [ -z "$TMUX" ] && [ -n "$PS1" ]; then
 fi
 
 # ---- paths ----
-export PROJECT_PATH=~/Projects/mtrx_asm/
+export PROJECT_PATH=~/dispute/
 # export PROJECT_PATH="$HOME/__Projects/dispute" # example for Linux/macOS
 export COMPOSE_FOLDER_PATH="$PROJECT_PATH/src/docker-compose"
 
