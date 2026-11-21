@@ -46,6 +46,14 @@ def determine_distro() -> str:
     return os.environ.get("YF_DISTRO") or distro_id()
 
 
+def should_prompt(args: argparse.Namespace, stdin_is_tty: bool) -> bool:
+    """Prompt on a TTY unless the caller made an explicit selection."""
+    explicit_selection = args.all or bool(args.profile) or bool(args.features)
+    return args.interactive or (
+        not explicit_selection and stdin_is_tty and not args.noninteractive
+    )
+
+
 def desired_features(args: argparse.Namespace, state_dir: Path) -> tuple[str, set[str]]:
     selection_path = state_dir / "features"
     if args.all:
@@ -85,15 +93,9 @@ def main(argv: list[str] | None = None) -> int:
     features = normalize_selection(features)
 
     # Interactive selection. Explicit --profile/--features/--all selections
-    # must win over the "no saved selection" convenience prompt.
+    # must win; otherwise a TTY always gets the selector, including re-runs.
     selection_path = state_dir / "features"
-    explicit_selection = args.all or bool(args.profile) or bool(args.features)
-    if args.interactive or (
-        not explicit_selection
-        and sys.stdin.isatty()
-        and not args.noninteractive
-        and not selection_path.is_file()
-    ):
+    if should_prompt(args, sys.stdin.isatty()):
         selector = FeatureSelector(features)
         features = normalize_selection(selector.run())
         profile_name = "custom"

@@ -148,7 +148,7 @@ in the `provision/` Python package (stdlib only).
   append an `apply <name> ...` record.
 
 **Selection and flags:**
-- `./setup.sh` with a TTY and no saved selection opens the interactive feature selector.
+- `./setup.sh` with a TTY opens the interactive feature selector on every run, seeded with the saved selection. Use `--noninteractive`, `--profile`, `--features`, or `--all` to skip it.
 - `--profile NAME` (`minimal`, `work`, `frontend`, `embedded`, `dotnet`, `full`)
 - `--features core,copilot,riscv-asm,...` (aliases `ai`, `embedded`, and
   `wsl` are still accepted)
@@ -222,8 +222,8 @@ for the path or date.
 
 The Docker widget is controlled by the `docker` setup feature. When enabled it
 shows `Docker:[n]`, or `Docker:[n/a]` when Docker is absent or unreachable.
-When disabled it is omitted entirely. Toggle it with `./setup.sh --interactive`
-or include/exclude `docker` via `--features`.
+When disabled it is omitted entirely. Toggle it with `./setup.sh` and the
+interactive selector, or include/exclude `docker` via `--features`.
 
 ## Forked/vendored code (`plugin-forks/` and `app-forks/`)
 
