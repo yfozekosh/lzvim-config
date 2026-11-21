@@ -197,7 +197,7 @@
     },
     "shell": {
       "os": [
-        "ble.sh 0.3.4 downloaded to ~/.local/share/blesh.",
+        "ble.sh 0.4.0-nightly snapshot (2026-09-08, d81fd54) downloaded to ~/.local/share/blesh.",
         "Adds to ~/.bashrc: source ~/.bash_profile_yf; source -- ~/.local/share/blesh/ble.sh.",
         "Symlinks ~/.bash_profile_yf and ~/.blerc."
       ],

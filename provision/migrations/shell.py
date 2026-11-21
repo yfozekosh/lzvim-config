@@ -11,9 +11,9 @@ from ..common import append_line, download_file, remove_line
 from ..links import ConfigLink, link_migration
 from ..models import Migration, SetupContext
 
-BLESH_VERSION = "0.3.4"
-BLESH_URL = f"https://github.com/akinomyoga/ble.sh/releases/download/v{BLESH_VERSION}/ble-{BLESH_VERSION}.tar.xz"
-BLESH_SHA256 = "e543a43d211fef8f52b96b2e7935e892581421f759cda4ae87563854ebc60573"
+BLESH_VERSION = "nightly-20260908+d81fd54"
+BLESH_URL = "https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-nightly-20260908%2Bd81fd54.tar.xz"
+BLESH_SHA256 = "7a2445f138e7f099dd5dee749391a8b045646d1b8a605975885be5b34b6b5f7e"
 
 
 def build(ctx: SetupContext) -> list[Migration]:
@@ -62,9 +62,12 @@ def build(ctx: SetupContext) -> list[Migration]:
     def install_blesh_check() -> bool:
         line = "source -- ~/.local/share/blesh/ble.sh"
         bashrc = home / ".bashrc"
-        return (home / ".local" / "share" / "blesh" / "ble.sh").is_file() and (
-            bashrc.is_file() and line in bashrc.read_text(encoding="utf-8").splitlines()
-        )
+        ble_sh = home / ".local" / "share" / "blesh" / "ble.sh"
+        if not (ble_sh.is_file() and bashrc.is_file() and line in bashrc.read_text(encoding="utf-8").splitlines()):
+            return False
+        # .blerc uses ble-face, which is unavailable in ble.sh 0.3.x.
+        # Treat an older install as missing so setup replaces it.
+        return "function ble-face" in ble_sh.read_text(encoding="utf-8", errors="replace")
 
     return [
         Migration("bashrc_source", "shell", bashrc_source_up, bashrc_source_down, bashrc_source_check),

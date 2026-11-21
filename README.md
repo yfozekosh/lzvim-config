@@ -172,7 +172,7 @@ in the `provision/` Python package (stdlib only).
 | `install_cmake` | build | Installs `cmake` |
 | `install_build_essentials` | build | Installs `g++`/`build-essential` and `make` |
 | `bashrc_source` | shell | Adds `source ~/.bash_profile_yf` to `~/.bashrc` |
-| `install_blesh` | shell | Downloads and extracts the prebuilt ble.sh release (no `make`) |
+| `install_blesh` | shell | Downloads and extracts the prebuilt ble.sh nightly 2026-09-08 (d81fd54) release (no `make`) |
 | `link_shell_configs` | shell | Symlinks `~/.bash_profile_yf` and `~/.blerc` |
 | `install_tpm` | tmux | Clones TPM |
 | `install_tmux_plugins` | tmux | Runs TPM installer |

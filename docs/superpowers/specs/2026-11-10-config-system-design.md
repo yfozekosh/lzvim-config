@@ -213,7 +213,7 @@ If the target is already present externally, up prints `already installed (exter
 
 - `build` off: `install_tmux_mem_cpu_load` downloads a pinned, checksummed prebuilt Linux binary from this repo's GitHub release into `~/.local/bin`, falling back to `assets/prebuilt/` when the release asset is not available. The committed asset is x86_64 only; other architectures should enable `build`.
 - `build` on: tmux compiles the vendored `app-forks/tmux-mem-cpu-load` source out-of-tree with CMake.
-- `shell` never needs `make`: `install_blesh` downloads the official `ble-0.3.4.tar.xz` release, verifies its SHA-256, and extracts it into `~/.local/share/blesh`.
+- `shell` never needs `make`: `install_blesh` downloads the official `ble-nightly-20260908+d81fd54.tar.xz` snapshot, verifies its SHA-256, and extracts it into `~/.local/share/blesh`.
 
 ## Risks and mitigations
 
