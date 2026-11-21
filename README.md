@@ -113,8 +113,9 @@ in the `provision/` Python package (stdlib only).
   `node`, `copilot`, `claude`, `copilot-usage`, `frontend`, `dotnet`,
   `riscv-asm`, `clangd`, `gef`, `wsl-fonts`, `wsl-clipboard`, `wsl-interop`.
 - Each feature has a `kind` (`base`, `editor`, `toolchain`, `tool`,
-  `dotfiles`, `widget`, `platform`) used to group the selector. `docker`,
-  `frontend`, and `clangd` are editor/widget-only and have no migrations.
+  `dotfiles`, `widget`, `platform`) used to group the selector, plus `os` and
+  `nvim` detail lists shown under its checkbox. `docker`, `frontend`, and
+  `clangd` are editor/widget-only and have no migrations.
 - Legacy aggregate names remain valid in `--features` and persisted
   selections: `ai` expands to `copilot`, `claude`, `copilot-usage`;
   `embedded` to `riscv-asm`, `clangd`; `wsl` to the three `wsl-*` features.
@@ -123,6 +124,8 @@ in the `provision/` Python package (stdlib only).
   persisted selection wins.
 - Features can be selected interactively (curses TUI with a plain numbered
   fallback) or via `--profile`, `--features`, `--all`, `--noninteractive`.
+  Every checkbox lists its OS packages/files and its Neovim plugin/LSP effects
+  underneath; the curses view scrolls with Up/Down, PgUp/PgDn, and Home/End.
   Profiles: `minimal`, `work`, `frontend`, `embedded`, `dotnet`, `full`.
 - `core` installs `gcc` (Treesitter needs a C compiler) but not C++ or CMake;
   select `build` when you need `g++`, `make`, and `cmake`. `embedded` includes

@@ -159,5 +159,202 @@
     "embedded": ["riscv-asm", "clangd"],
     "wsl": ["wsl-fonts", "wsl-clipboard", "wsl-interop"]
   },
-  "legacy_core_implies": ["nvim"]
+  "legacy_core_implies": ["nvim"],
+  "details": {
+    "core": {
+      "os": [
+        "Setup-wide prerequisite: setup.sh ensures python3 is present before any feature runs.",
+        "Fedora: tmux, git, gcc, neovim, bat, fastfetch, vim, wget, curl, xz, gawk, unzip.",
+        "Debian/Ubuntu: the same packages, with xz-utils instead of xz."
+      ],
+      "nvim": [
+        "Always loaded: LazyVim core plugins and base editor behavior.",
+        "Always loaded LazyVim extras: coding.yanky, formatting.black, lang.docker, lang.helm, lang.json, lang.markdown, lang.python, lang.yaml, util.dot.",
+        "Always loaded lua/plugins/core: nord + Comment.nvim; auto-save.nvim; diffview.nvim; noice.nvim; smear-cursor.nvim; last-file-rec.nvim.",
+        "Always loaded UI/editing: fastfetch-powered snacks.nvim dashboard; test results sorted last in pickers; lualine with LSP-pending spinner.",
+        "Always loaded language/formatting: autotools_ls, conform bake, Mason mbake; markdownlint removed; nvim-dap and neotest disabled; persistence disabled."
+      ]
+    },
+    "nvim": {
+      "os": [
+        "No OS packages; uses git, curl, and neovim from core."
+      ],
+      "nvim": [
+        "Bootstraps lazy.nvim and every plugin, Tree-sitter parser, and Mason package declared by the active features into ~/.local/share/nvim.",
+        "Runs scripts/headless_prune.lua on every setup to remove plugins, Mason packages, and parsers no longer declared.",
+        "Skipped on Raspberry Pi, which uses the plugin-free minimal config.",
+        "Does not gate the plugin set: base LazyVim and lua/plugins/core load even when nvim is off."
+      ]
+    },
+    "build": {
+      "os": [
+        "Fedora: cmake, gcc-c++, make.",
+        "Debian/Ubuntu: cmake, build-essential (g++, make, libc development headers)."
+      ],
+      "nvim": [
+        "None."
+      ]
+    },
+    "shell": {
+      "os": [
+        "ble.sh 0.3.4 downloaded to ~/.local/share/blesh.",
+        "Adds to ~/.bashrc: source ~/.bash_profile_yf; source -- ~/.local/share/blesh/ble.sh.",
+        "Symlinks ~/.bash_profile_yf and ~/.blerc."
+      ],
+      "nvim": [
+        "None."
+      ]
+    },
+    "tmux": {
+      "os": [
+        "TPM at ~/.tmux/plugins/tpm; plugins tmux-sensible and tmux-which-key from .tmux.conf.",
+        "tmux-mem-cpu-load 3.8.3 at ~/.local/bin (pinned prebuilt; built from app-forks/tmux-mem-cpu-load when build is selected).",
+        "Symlinks ~/.tmux.conf and ~/.tmux/scripts (window-name, memory-status, docker-panel, docker-count, copilot-usage, claude-usage, and the copilot-usage-scraper)."
+      ],
+      "nvim": [
+        "None."
+      ]
+    },
+    "docker": {
+      "os": [
+        "No packages; the tmux status scripts docker-panel.sh and docker-count.sh need an existing docker CLI."
+      ],
+      "nvim": [
+        "None; the LazyVim lang.docker extra is always loaded from lazyvim.json, independent of this checkbox."
+      ]
+    },
+    "git": {
+      "os": [
+        "gh CLI from GitHub's apt repository (Debian/Ubuntu) or the gh-cli COPR (Fedora).",
+        "lazygit on Fedora from the atim/lazygit COPR; on Debian/Ubuntu setup warns and leaves installation manual."
+      ],
+      "nvim": [
+        "LazyVim lang.git extra: Tree-sitter parsers git_config, gitcommit, git_rebase, gitignore, gitattributes; cmp-git completion source.",
+        "Base gitsigns.nvim is always loaded by LazyVim, not by this feature."
+      ]
+    },
+    "node": {
+      "os": [
+        "Fedora: nodejs, npm.",
+        "Debian/Ubuntu: nodejs, npm."
+      ],
+      "nvim": [
+        "None; node/npm are prerequisites for Copilot, copilot-usage, and frontend Mason tooling."
+      ]
+    },
+    "copilot": {
+      "os": [
+        "GitHub Copilot CLI: sudo npm install -g @github/copilot.",
+        "Symlink ~/.copilot/copilot-instructions.md -> repo copilot-instructions.md."
+      ],
+      "nvim": [
+        "LazyVim ai.copilot-chat extra: CopilotChat.nvim, <leader>a keymaps, optional edgy and blink integrations.",
+        "plugins.ai/copilot.lua: zbirenbaum/copilot.lua loaded on InsertEnter; manual suggestions only; Tab accept, M-] next, M-[ previous, C-] dismiss; panel disabled.",
+        "lua/config/keymaps.lua: insert-mode Tab accepts a Copilot suggestion and otherwise falls back to Tab."
+      ]
+    },
+    "claude": {
+      "os": [
+        "Creates or patches ~/.claude/settings.json statusLine.command to repo claude-scripts/statusline.sh; repairs stale repo paths; leaves a valid external script alone.",
+        "Claude Code CLI itself is not installed by setup."
+      ],
+      "nvim": [
+        "None."
+      ]
+    },
+    "copilot-usage": {
+      "os": [
+        "npm install in tmux-scripts/copilot-usage-scraper (node_modules).",
+        "Playwright Chromium; Debian/Ubuntu: npx playwright install-deps chromium; Fedora: nss, nspr, atk, cups-libs, libdrm, libxkbcommon, at-spi2-atk, libXcomposite, libXdamage, libXfixes, libXrandr, mesa-libgbm, alsa-lib, pango, cairo, libxshmfence.",
+        "tmux widget tmux-scripts/copilot-usage.sh plus the scraper; credentials in ~/.config/copilot-usage are not created by setup."
+      ],
+      "nvim": [
+        "None."
+      ]
+    },
+    "frontend": {
+      "os": [
+        "None; node/npm comes from the node feature."
+      ],
+      "nvim": [
+        "LazyVim lang.typescript: vtsls language server (default), TS/JS filetype detection, keymaps gD, gR, <leader>cM, <leader>cD, <leader>cV, mini.icons.",
+        "LazyVim lang.angular: Angular/SCSS Tree-sitter parsers, angularls via Mason package angular-language-server, vtsls Angular tsserver plugin.",
+        "LazyVim formatting.prettier: Mason prettier; conform formatting for css, graphql, handlebars, html, javascript, javascriptreact, json, jsonc, less, markdown, markdown.mdx, scss, typescript, typescriptreact, vue, yaml.",
+        "Optional js-debug-adapter/DAP integration is inert because nvim-dap is disabled."
+      ]
+    },
+    "dotnet": {
+      "os": [
+        "Fedora runtime deps: glibc, libgcc, ca-certificates, openssl-libs, libstdc++, libicu, tzdata, krb5-libs, zlib.",
+        "Debian/Ubuntu runtime deps: libc6, libgcc-s1, ca-certificates, openssl, libstdc++6, libicu-dev, tzdata, zlib1g.",
+        "Downloads ~/dotnet-install.sh and installs the .NET SDK under ~/.dotnet."
+      ],
+      "nvim": [
+        "plugins/dotnet/roslyn.lua: seblyng/roslyn.nvim for cs/razor; Mason roslyn-language-server (legacy roslyn accepted) auto-installed on the first C# buffer.",
+        "Roslyn inlay-hint, completion, and background-analysis settings in lua/config/options.lua.",
+        "Keymaps: <leader><S-b> dotnet build ./src; <leader>kl csharpier format . (csharpier must already be on PATH; setup does not install it)."
+      ]
+    },
+    "riscv-asm": {
+      "os": [
+        "cargo if missing (Fedora: dnf cargo; Debian/Ubuntu: apt cargo).",
+        "asm-lsp at commit bacbe5e built from source with patches/asm-lsp-full-reparse.patch into ~/.local/bin.",
+        "rvfmt (riscv-asm-fmt) at commit 9247d1b built from source with patches/riscv-asm-fmt-dollar-symbol.patch into ~/.local/bin.",
+        "Symlinks ~/.config/asm-lsp/.asm-lsp.toml and ~/.local/bin/ld-format."
+      ],
+      "nvim": [
+        "plugins.embedded/asm.lua: Tree-sitter asm and linkerscript; asm_lsp via nvim-lspconfig with Mason disabled, root markers, and K/gd/gR; conform rvfmt for asm and ldformat for ld; blink sources riscv_asm, asm_symbols, asm_macros; which-key gR.",
+        "Lua modules lua/riscv_asm, lua/asm_symbols, lua/asm_docs, lua/asm_macros; ftdetect/asm.lua and ftdetect/linker.lua; after/ftplugin/asm.lua comment handling.",
+        "Commands :RiscvAsmDoctor and :RiscvAsmReferences."
+      ]
+    },
+    "clangd": {
+      "os": [
+        "None; clangd is installed by Mason."
+      ],
+      "nvim": [
+        "LazyVim lang.clangd extra: cpp Tree-sitter parser; clangd_extensions.nvim; Mason clangd server; <leader>ch switch source/header; clangd background-index, clang-tidy, iwyu, and detailed completion settings.",
+        "PlatformIO autocmd in lua/config/autocmds.lua: FileType c/cpp/objc/objcpp/cuda and BufWritePost platformio.ini run pio run -t compiledb when compile_commands.json is missing or stale; :PlatformIOCompiledb command; pio must already be on PATH.",
+        "Optional codelldb/nvim-dap integration is inert because nvim-dap is disabled."
+      ]
+    },
+    "gef": {
+      "os": [
+        "Shallow clone of https://github.com/yfozekosh/gef.git, branch ch32v003-rv32ec, into ~/.local/share/gef.",
+        "Symlink ~/.gdbinit -> repo .gdbinit; it loads GEF and the CH32V003 context view.",
+        "gdb itself is not installed by setup."
+      ],
+      "nvim": [
+        "None."
+      ]
+    },
+    "wsl-fonts": {
+      "os": [
+        "Fedora: dejavu-fonts-all, liberation-fonts-all.",
+        "Debian/Ubuntu: fonts-dejavu, fonts-liberation. Runs fc-cache -f."
+      ],
+      "nvim": [
+        "None."
+      ]
+    },
+    "wsl-clipboard": {
+      "os": [
+        "win32yank.exe v0.1.1 x64 downloaded to ~/.local/bin.",
+        "tmux copy-command and the OSC 52 clipboard hook use it when present."
+      ],
+      "nvim": [
+        "lua/config/options.lua sets vim.g.clipboard to win32yank.exe (-i --crlf / -o --lf) when the binary is executable.",
+        "Sets clipboard=unnamedplus so yanks and pastes use the Windows clipboard."
+      ]
+    },
+    "wsl-interop": {
+      "os": [
+        "Edits /etc/wsl.conf, adding a [boot] command that writes :WSLInterop:M::MZ::/init:PF to binfmt_misc.",
+        "Registers the binfmt entry immediately; requires sudo, and a reboot for boot persistence."
+      ],
+      "nvim": [
+        "None."
+      ]
+    }
+  }
 }

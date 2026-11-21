@@ -98,6 +98,8 @@ class Feature:
     depends: tuple[str, ...] = ()
     auto: bool = False  # enabled automatically on a matching platform
     kind: str = "tool"  # base/editor/toolchain/tool/dotfiles/widget/platform
+    os_details: tuple[str, ...] = ()
+    nvim_details: tuple[str, ...] = ()
 
 
 class Profile:

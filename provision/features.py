@@ -5,17 +5,25 @@ from __future__ import annotations
 from pathlib import Path
 
 from .common import is_wsl
-from .manifest import ALIASES, FEATURES as FEATURE_DATA, KINDS, LEGACY_CORE_IMPLIES
+from .manifest import (
+    ALIASES,
+    DETAILS,
+    FEATURES as FEATURE_DATA,
+    KINDS,
+    LEGACY_CORE_IMPLIES,
+)
 from .models import Feature, Profile
 
 
 FEATURES: dict[str, Feature] = {
     fid: Feature(
-        fid,
-        data["description"],
-        tuple(data.get("depends", ())),
-        bool(data.get("auto", False)),
-        data.get("kind", "tool"),
+        id=fid,
+        description=data["description"],
+        depends=tuple(data.get("depends", ())),
+        auto=bool(data.get("auto", False)),
+        kind=data.get("kind", "tool"),
+        os_details=DETAILS[fid]["os"],
+        nvim_details=DETAILS[fid]["nvim"],
     )
     for fid, data in FEATURE_DATA.items()
 }

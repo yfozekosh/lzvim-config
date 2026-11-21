@@ -34,13 +34,14 @@ When you add, remove, or change a migration:
    missing dependency is required by every subsequent migration.
 4. Document feature dependencies in `features.json` (loaded by
    `provision/features.py` and `lua/config/profile.lua`). Keep the `ai`,
-   `embedded`, and `wsl` alias lists there in sync when renaming features. If
-   a migration depends on something installed by an earlier migration (e.g.
-   needing `npm`), place it after that migration and mention the dependency in
-   a comment. `core` deliberately keeps `gcc` for Treesitter but leaves C++,
-   `make`, and CMake to `build`; `node` is shared by `copilot`,
-   `copilot-usage`, and `frontend`; `clangd` is editor-only while `riscv-asm`
-   owns the host asm tools.
+   `embedded`, and `wsl` alias lists there in sync when renaming features, and
+   update each feature's `os`/`nvim` detail lists so the selector shows every
+   installed package and editor effect. If a migration depends on something
+   installed by an earlier migration (e.g. needing `npm`), place it after that
+   migration and mention the dependency in a comment. `core` deliberately keeps
+   `gcc` for Treesitter but leaves C++, `make`, and CMake to `build`; `node`
+   is shared by `copilot`, `copilot-usage`, and `frontend`; `clangd` is
+   editor-only while `riscv-asm` owns the host asm tools.
 5. Never commit or install secrets/credentials as part of a migration.
    Credential/session files for tools like the Copilot usage scraper live
    outside the repo (e.g. `~/.config/copilot-usage/`), never inside it.

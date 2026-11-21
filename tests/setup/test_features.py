@@ -15,7 +15,7 @@ from provision.features import (
     resolve_profile,
     save_selection,
 )
-from provision.manifest import ALIASES, KINDS, LEGACY_CORE_IMPLIES, PROFILES
+from provision.manifest import ALIASES, DETAILS, KINDS, LEGACY_CORE_IMPLIES, PROFILES
 
 
 class ManifestTests(unittest.TestCase):
@@ -44,6 +44,34 @@ class ManifestTests(unittest.TestCase):
     def test_full_includes_every_non_auto_feature(self) -> None:
         expected = {feature.id for feature in FEATURES.values() if not feature.auto}
         self.assertEqual(expected, set(PROFILES["full"]))
+
+    def test_every_feature_has_os_and_nvim_details(self) -> None:
+        self.assertEqual(set(DETAILS), set(FEATURES))
+        for fid, feature in FEATURES.items():
+            self.assertTrue(feature.os_details, fid)
+            self.assertTrue(feature.nvim_details, fid)
+            self.assertEqual(set(DETAILS[fid]), {"os", "nvim"})
+            for item in feature.os_details + feature.nvim_details:
+                self.assertTrue(item.strip(), f"{fid}: empty detail line")
+
+    def test_core_details_list_every_package(self) -> None:
+        details = " ".join(FEATURES["core"].os_details)
+        for package in (
+            "tmux",
+            "git",
+            "gcc",
+            "neovim",
+            "bat",
+            "fastfetch",
+            "vim",
+            "wget",
+            "curl",
+            "xz",
+            "xz-utils",
+            "gawk",
+            "unzip",
+        ):
+            self.assertIn(package, details)
 
 
 class FeatureTests(unittest.TestCase):
