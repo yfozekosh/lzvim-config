@@ -56,7 +56,7 @@ def build(ctx: SetupContext) -> list[Migration]:
             print("lazygit already installed (external) - recording migration")
             return
         if distro == "fedora":
-            run(["dnf", "copr", "enable", "-y", "atim/lazygit"])
+            run(sudo(["dnf", "copr", "enable", "-y", "atim/lazygit"]))
             dnf_install(["lazygit"])
         else:
             print("WARNING: install_lazygit only supports Fedora; install manually.")
