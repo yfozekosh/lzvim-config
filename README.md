@@ -126,6 +126,8 @@ in the `provision/` Python package (stdlib only).
   fallback) or via `--profile`, `--features`, `--all`, `--noninteractive`.
   Every checkbox lists its OS packages/files and its Neovim plugin/LSP effects
   underneath; the curses view scrolls with Up/Down, PgUp/PgDn, and Home/End.
+  Headings and detail labels are colorized when the terminal supports it;
+  `NO_COLOR=1` disables color.
   Profiles: `minimal`, `work`, `frontend`, `embedded`, `dotnet`, `full`.
 - `core` installs `gcc` (Treesitter needs a C compiler) but not C++ or CMake;
   select `build` when you need `g++`, `make`, and `cmake`. `embedded` includes

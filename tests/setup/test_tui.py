@@ -50,7 +50,7 @@ class CursesTests(unittest.TestCase):
         screen = FakeScreen([curses.KEY_DOWN, 10], height=8, width=80)
         with patch("provision.tui.curses.curs_set", lambda _: None):
             FeatureSelector({"core"}).run_curses(screen)
-        self.assertIn("clangd", screen.rows[1])
+        self.assertTrue(any("[ ] clangd" in row for row in screen.rows.values()))
 
     def test_page_down_scrolls_within_tall_block(self) -> None:
         screen = FakeScreen([curses.KEY_DOWN, curses.KEY_NPAGE, 10], height=8, width=80)
@@ -66,7 +66,13 @@ class DetailBlockTests(unittest.TestCase):
         for fid in FEATURES:
             block = "\n".join(_format_block(fid, 1, set(), 80))
             self.assertIn("OS:", block, fid)
-            self.assertIn("Nvim:", block, fid)
+            self.assertIn("Neovim:", block, fid)
+
+    def test_group_header_and_trailing_space(self) -> None:
+        block = _format_block("core", 1, set(), 80, group_header=True)
+        self.assertEqual(block[0], "  ── BASE ──")
+        self.assertEqual(block[-1], "")
+        self.assertIn("core", block[1])
 
     def test_core_block_lists_distro_packages(self) -> None:
         block = "\n".join(_format_block("core", 1, {"core"}, 100))
@@ -88,10 +94,11 @@ class DetailBlockTests(unittest.TestCase):
                 selector.run_plain()
         rendered = output.getvalue()
         self.assertIn("OS:", rendered)
-        self.assertIn("Nvim:", rendered)
+        self.assertIn("Neovim:", rendered)
+        self.assertIn("── BASE ──", rendered)
+        self.assertNotIn("\033[", rendered)
         self.assertIn("Playwright Chromium", rendered)
         self.assertIn("win32yank.exe", rendered)
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import bisect
 import curses
+import os
 import shutil
+import sys
 import textwrap
 from typing import Callable
 
@@ -19,6 +21,83 @@ def _sort_key(fid: str) -> tuple[int, str]:
     return (_KIND_RANK.get(kind, len(_KIND_RANK)), fid)
 
 
+def _color_enabled() -> bool:
+    return (
+        hasattr(sys.stdout, "isatty")
+        and sys.stdout.isatty()
+        and os.environ.get("NO_COLOR") is None
+        and os.environ.get("TERM", "").lower() != "dumb"
+    )
+
+
+def _paint(text: str, code: str, enabled: bool) -> str:
+    if not enabled:
+        return text
+    return f"\033[{code}m{text}\033[0m"
+
+
+def _plain_line(line: str, enabled: bool) -> str:
+    stripped = line.strip()
+    if stripped.startswith("── "):
+        return _paint(line, "1;36", enabled)
+    if ") [x] " in line:
+        return _paint(line, "1;32", enabled)
+    if stripped.startswith("OS:"):
+        return _paint(line, "1;33", enabled)
+    if stripped.startswith("Neovim:"):
+        return _paint(line, "1;35", enabled)
+    if stripped.startswith("- "):
+        split = line.index("- ") + 2
+        return _paint(line[:split], "36", enabled) + line[split:]
+    return line
+
+
+def _curses_styles() -> dict[str, int]:
+    if os.environ.get("NO_COLOR") is not None:
+        return {}
+    try:
+        if not curses.has_colors():
+            return {}
+        curses.start_color()
+        try:
+            curses.use_default_colors()
+            background = -1
+        except curses.error:
+            background = curses.COLOR_BLACK
+        specs = {
+            "title": (curses.COLOR_CYAN, background),
+            "kind": (curses.COLOR_CYAN, background),
+            "selected": (curses.COLOR_GREEN, background),
+            "os": (curses.COLOR_YELLOW, background),
+            "nvim": (curses.COLOR_MAGENTA, background),
+            "detail": (curses.COLOR_CYAN, background),
+        }
+        styles: dict[str, int] = {}
+        for index, (name, (foreground, back)) in enumerate(specs.items(), start=1):
+            curses.init_pair(index, foreground, back)
+            styles[name] = curses.color_pair(index)
+        return styles
+    except curses.error:
+        return {}
+
+
+def _is_heading(line: str, index: int) -> bool:
+    return line.strip().startswith(f"{index}) [")
+
+
+def _line_attr(line: str, styles: dict[str, int]) -> int:
+    stripped = line.strip()
+    if stripped.startswith("── "):
+        return styles.get("kind", 0) | curses.A_BOLD
+    if stripped.startswith("OS:"):
+        return styles.get("os", 0) | curses.A_BOLD
+    if stripped.startswith("Neovim:"):
+        return styles.get("nvim", 0) | curses.A_BOLD
+    if stripped.startswith("- "):
+        return styles.get("detail", 0)
+    return 0
+
+
 def _wrap(text: str, width: int) -> list[str]:
     return textwrap.wrap(
         text,
@@ -28,18 +107,27 @@ def _wrap(text: str, width: int) -> list[str]:
     ) or [""]
 
 
-def _format_block(fid: str, index: int, selected: set[str], width: int = 100) -> list[str]:
-    """Return the checkbox line and its OS/Nvim details, wrapped to width."""
+def _format_block(
+    fid: str,
+    index: int,
+    selected: set[str],
+    width: int = 100,
+    group_header: bool = False,
+) -> list[str]:
+    """Return the checkbox line and its OS/Neovim details, wrapped to width."""
     feature = FEATURES[fid]
     mark = "x" if fid in selected else " "
-    heading = f"  {index:2}) [{mark}] {feature.kind:9} {fid:16} "
+    lines: list[str] = []
+    if group_header:
+        lines.append(f"  ── {feature.kind.upper()} ──")
+    heading = f"  {index:2}) [{mark}] {fid:16} "
     description = _wrap(feature.description, width - len(heading))
-    lines = [heading + description[0]]
+    lines.append(heading + description[0])
     lines.extend(" " * len(heading) + part for part in description[1:])
 
     for label, entries in (
         ("OS", feature.os_details),
-        ("Nvim", feature.nvim_details),
+        ("Neovim", feature.nvim_details),
     ):
         lines.append(f"      {label}:")
         for entry in entries:
@@ -47,6 +135,7 @@ def _format_block(fid: str, index: int, selected: set[str], width: int = 100) ->
             wrapped = _wrap(entry, width - len(prefix))
             lines.append(prefix + wrapped[0])
             lines.extend(" " * len(prefix) + part for part in wrapped[1:])
+    lines.append("")
     return lines
 
 
@@ -103,12 +192,30 @@ class FeatureSelector:
         """Numbered prompt fallback (no curses)."""
         ids = self._available_ids()
         width = max(40, min(shutil.get_terminal_size((100, 24)).columns, 120))
+        color = _color_enabled()
         while True:
-            print("\nSelect features (toggle by number, 'd' done):")
+            print()
+            print(
+                _paint(
+                    f"Select features  selected {len(self.selected)}  "
+                    "(toggle by number, 'd' done)",
+                    "1;36",
+                    color,
+                )
+            )
+            previous_kind = ""
             for index, fid in enumerate(ids, start=1):
-                for line in _format_block(fid, index, self.selected, width):
-                    print(line)
-                print()
+                kind = FEATURES[fid].kind
+                first_in_kind = kind != previous_kind
+                previous_kind = kind
+                for line in _format_block(
+                    fid,
+                    index,
+                    self.selected,
+                    width,
+                    group_header=first_in_kind,
+                ):
+                    print(_plain_line(line, color))
             raw = self.input_fn("choice> ").strip().lower()
             if raw in {"d", "done", "q"}:
                 break
@@ -120,6 +227,7 @@ class FeatureSelector:
 
     def run_curses(self, stdscr: "curses._CursesWindow") -> set[str]:  # type: ignore[attr-defined]
         curses.curs_set(0)
+        styles = _curses_styles()
         ids = self._available_ids()
         pos = 0
         top = 0
@@ -128,10 +236,21 @@ class FeatureSelector:
         while True:
             max_y, max_x = stdscr.getmaxyx()
             width = max(20, max_x)
-            blocks = [
-                _format_block(fid, index, self.selected, width)
-                for index, fid in enumerate(ids, start=1)
-            ]
+            blocks: list[list[str]] = []
+            previous_kind = ""
+            for index, fid in enumerate(ids, start=1):
+                kind = FEATURES[fid].kind
+                first_in_kind = kind != previous_kind
+                previous_kind = kind
+                blocks.append(
+                    _format_block(
+                        fid,
+                        index,
+                        self.selected,
+                        width,
+                        group_header=first_in_kind,
+                    )
+                )
             starts: list[int] = []
             total = 0
             for block in blocks:
@@ -163,17 +282,24 @@ class FeatureSelector:
                 0,
                 0,
                 f"Select features  [{pos + 1}/{len(ids)}]  "
+                f"selected {len(self.selected)}  "
                 f"lines {top + 1}-{min(total, top + view_h)}/{total}",
                 max_x,
-                curses.A_BOLD,
+                curses.A_BOLD | styles.get("title", 0),
             )
 
             for index, block in enumerate(blocks):
                 block_start = starts[index]
+                checked = ids[index] in self.selected
                 for offset, line in enumerate(block):
                     screen_y = 1 + block_start + offset - top
                     if 1 <= screen_y < max_y - 1:
-                        attr = curses.A_REVERSE if index == pos and offset == 0 else 0
+                        attr = _line_attr(line, styles)
+                        if _is_heading(line, index + 1):
+                            if checked:
+                                attr |= styles.get("selected", 0) | curses.A_BOLD
+                            if index == pos:
+                                attr |= curses.A_REVERSE
                         _addstr(stdscr, screen_y, 0, line, max_x, attr)
 
             _addstr(
