@@ -154,7 +154,7 @@ in the `provision/` Python package (stdlib only).
   `wsl` are still accepted)
 - `--all`
 - `--interactive`, `--noninteractive`
-- `--purge` (or `SETUP_PURGE=1`) allows down migrations to remove OS packages.
+- `--purge` is on by default, so undoing a feature removes its OS packages. Use `--no-purge` (or `SETUP_PURGE=0`) to keep them.
 - `NVIM_PROFILE` overrides the saved profile for Neovim; `~/.config/yf-nvim/profile` and `~/.config/yf-nvim/features` hold the persisted selection.
 
 **Current migrations (in run order):**

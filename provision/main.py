@@ -22,6 +22,14 @@ from .models import Migration, MigrationLog, SetupContext
 from .tui import FeatureSelector
 
 
+def purge_default() -> bool:
+    """Purge OS packages on undo unless SETUP_PURGE explicitly disables it."""
+    value = os.environ.get("SETUP_PURGE")
+    if value is None:
+        return True
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Yurii's config setup")
     parser.add_argument(
@@ -35,9 +43,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--noninteractive", action="store_true", help="never prompt")
     parser.add_argument(
         "--purge",
-        action="store_true",
-        default=os.environ.get("SETUP_PURGE") == "1",
-        help="allow down migrations to remove OS packages (also SETUP_PURGE=1)",
+        action=argparse.BooleanOptionalAction,
+        default=purge_default(),
+        help=(
+            "remove OS packages when undoing migrations "
+            "(default: on; use --no-purge or SETUP_PURGE=0 to keep them)"
+        ),
     )
     return parser.parse_args(argv)
 

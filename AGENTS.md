@@ -25,7 +25,8 @@ When you add, remove, or change a migration:
    external-install guard (`cmd_exists`, a file check, or an exact config
    grep) so an existing target is recorded without overwriting it. `down`
    must remove exactly what `up` added; remove shared OS packages only when
-   `ctx.purge` is true (the `--purge` flag). Feature-owned packages (for
+   `ctx.purge` is true (purge is enabled by default; `--no-purge` or
+   `SETUP_PURGE=0` disables it). Feature-owned packages (for
    example the .NET SDK) may be removed when their feature is unchecked.
 3. Branch on `ctx.distro` (Fedora vs Debian/Ubuntu) when the install method
    differs. For unsupported distros, print a warning with manual install
